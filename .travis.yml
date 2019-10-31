@@ -4,9 +4,18 @@ branches:
 language: python
 compiler:
   - gcc
-python:
+
+jobs:
+  include:
+    - os: linux
+      dist: xenial
+      python: 3.6
+    - os: linux
+      dist: bionic
+      python: 3.6
+#python:
 #  - 2.7
-  - 3.6
+#  - 3.6
 # setup anaconda
 before_install:
   - if [[ $TRAVIS_PYTHON_VERSION < 3.0 ]]; then wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh; fi
