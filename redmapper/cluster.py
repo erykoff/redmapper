@@ -60,6 +60,7 @@ cluster_dtype_base = [('MEM_MATCH_ID', 'i4'),
                       ('Z_LAMBDA_RAW', 'f4'),
                       ('Z_LAMBDA_E_RAW', 'f4'),
                       ('BKG_LOCAL', 'f4'),
+                      ('BKG_LOCAL_EXCESS', 'f4'),
                       ('LIM_EXPTIME', 'f4'),
                       ('LIM_LIMMAG', 'f4'),
                       ('LIM_LIMMAG_HARD', 'f4'),
@@ -439,6 +440,7 @@ class Cluster(Entry):
                 maskgals_depth = limpars['LIMMAG']
 
         sigma_g_maskgals = self.bkg.sigma_g_lookup(self._redshift, mask.maskgals.chisq, maskgals_refmag)
+        # sigma_g_maskgals = self.bkg.sigma_g_lookup(self._redshift, mask.maskgals.chisq, mask.maskgals.refmag)
 
         bright_enough, = np.where((mask.maskgals.refmag < maxmag) & (np.isfinite(sigma_g_maskgals))
 &
@@ -465,7 +467,6 @@ class Cluster(Entry):
         neighbors_in_annulus, = np.where((self.neighbors.r > self.config.bkg_local_annuli[0]) &
                                          (self.neighbors.r < self.config.bkg_local_annuli[1]) &
                                          (self.neighbors.refmag < maxmag) &
-                                         # (self.neighbors.chisq < mask.maskgals.chisq.max()) &
                                          (self.neighbors.chisq < self.config.bkg_local_chisq_cut) &
                                          (self.neighbors.refmag < neighbors_depth))
 
@@ -548,11 +549,7 @@ class Cluster(Entry):
 
         # If we need local background...
         bcounts_local = 0.0
-        # import traceback
-        # traceback.print_stack()
-        # print(self.ra, self.dec)
-        # if self.config.bkg_local_use or self.config.bkg_local_compute:
-        if False:
+        if self.config.bkg_local_use or self.config.bkg_local_compute:
             if not self._bkg_local_valid:
                 # Need to (re)compute local background normalization
                 bkg_local_norm, prediction = self.compute_bkg_local_norm(mask,
@@ -1084,7 +1081,7 @@ class ClusterCatalog(Catalog):
                            cbkg=self.cbkg,
                            zredbkg=self.zredbkg)
         else:
-            return ClusterCatalog(cat_vals=self._ndarray.__getitem__(key),
+            return ClusterCatalog(self._ndarray.__getitem__(key),
                                   r0=self.r0,
                                   beta=self.beta,
                                   zredstr=self.zredstr,

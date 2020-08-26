@@ -285,6 +285,8 @@ class ClusterRunner(object):
         cluster.scaleval = -1.0
         cluster.z_lambda = -1.0
         cluster.z_lambda_e = -1.0
+        cluster.bkg_local = 0.0
+        cluster.bkg_local_excess = 0.0
 
     def _process_cluster(self, cluster):
         """
@@ -422,19 +424,6 @@ class ClusterRunner(object):
                     # This is a bad cluster and we can't continue
                     self._reset_bad_values(cluster)
                     continue
-
-                """
-                if self.read_gals:
-                    if self.config.bkg_local_compute and not self.config.bkg_local_use:
-                        # We have to compute this special because it wasn't computed
-                        # internally
-                        if self.depthstr is None:
-                            depth = self.depthlim
-                        else:
-                            depth = self.depthstr
-                        bkg_local, prediction = cluster.compute_bkg_local_norm(self.mask, depth)
-                        cluster.bkg_local = bkg_local / prediction
-                        """
 
                 if self.do_correct_zlambda and self.zlambda_corr is not None and self.read_gals:
                     if self.do_pz:

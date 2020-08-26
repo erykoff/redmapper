@@ -326,6 +326,9 @@ class RunPercolation(ClusterRunner):
 
         # now we iterate over the new center to get the redshift
 
+        # Invalidate the local background because we have a new center
+        cluster.invalidate_bkg_local()
+
         for i in xrange(self.maxiter):
             if cluster.redshift < 0.0:
                 bad = True
