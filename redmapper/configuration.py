@@ -311,9 +311,13 @@ class Configuration(object):
     bkg_deepmode = ConfigField(default=False)
     calib_make_full_bkg = ConfigField(default=True)
     bkg_local_annuli = ConfigField(isArray=True, array_length=2,
-                                   default=np.array([2.0, 3.0]))
+                                   default=np.array([3.0, 6.0]))
     bkg_local_compute = ConfigField(default=False)
     bkg_local_use = ConfigField(default=False)
+    bkg_local_plaw_model_z_pivot = ConfigField(default=0.3)
+    bkg_local_plaw_model_z_intercept = ConfigField(default=0.0)
+    bkg_local_plaw_model_z_slope = ConfigField(default=0.0)
+    bkg_local_chisq_cut = ConfigField(default=20.0)
 
     zlambda_pivot = ConfigField(default=30.0, required=True)
     zlambda_binsize = ConfigField(default=0.002, required=True)

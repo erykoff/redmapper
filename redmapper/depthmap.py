@@ -326,5 +326,7 @@ def convert_depthfile_to_healsparse(depthfile, healsparsefile, nsideCoverage, cl
     hdr['W'] = old_hdr['W']
     hdr['EFF'] = old_hdr['EFF']
 
-    sparseMap.write(healsparsefile, clobber=clobber, header=hdr)
+    sparseMap.metadata = hdr
+
+    sparseMap.write(healsparsefile, clobber=clobber)
 

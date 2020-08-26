@@ -47,6 +47,8 @@ maskgal_nsamples: 5
 #zlambda_correct_internal: False
 zlambda_epsilon: 0.005
 
+bkg_local_annuli: [2.0, 3.0]
+
 calib_nproc: 2
 
 calib_redgal_template: bc03_colors_sdss.fit

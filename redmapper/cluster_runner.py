@@ -386,10 +386,15 @@ class ClusterRunner(object):
 
                     self.depthlim.calc_maskdepth(self.mask.maskgals,
                                                  cluster.neighbors.refmag, cluster.neighbors.refmag_err)
+                    depth = self.depthlim
                 else:
                     # get from the depth structure
                     self.depthstr.calc_maskdepth(self.mask.maskgals,
                                                  cluster.ra, cluster.dec, cluster.mpc_scale)
+                    depth = self.depthstr
+
+                if self.config.bkg_local_use:
+                    cluster.depth = depth
 
                 cluster.lim_exptime = np.median(self.mask.maskgals.exptime)
                 cluster.lim_limmag = np.median(self.mask.maskgals.limmag)
@@ -403,6 +408,9 @@ class ClusterRunner(object):
                 bad, = np.where(self.mask.maskgals.mark[inside] == 0)
                 cluster.maskfrac = float(bad.size) / float(inside.size)
 
+                # Flag that we haven't computed the local background
+                cluster.invalidate_bkg_local()
+
                 if cluster.maskfrac == 1.0 or cluster.lim_limmag <= 1.0:
                     # This is a very bad cluster, and should not be used
                     bad_cluster = True
@@ -415,13 +423,18 @@ class ClusterRunner(object):
                     self._reset_bad_values(cluster)
                     continue
 
+                """
                 if self.read_gals:
                     if self.config.bkg_local_compute and not self.config.bkg_local_use:
+                        # We have to compute this special because it wasn't computed
+                        # internally
                         if self.depthstr is None:
                             depth = self.depthlim
                         else:
                             depth = self.depthstr
-                        cluster.bkg_local = cluster.compute_bkg_local(self.mask, depth)
+                        bkg_local, prediction = cluster.compute_bkg_local_norm(self.mask, depth)
+                        cluster.bkg_local = bkg_local / prediction
+                        """
 
                 if self.do_correct_zlambda and self.zlambda_corr is not None and self.read_gals:
                     if self.do_pz:

@@ -96,7 +96,7 @@ class Cluster(Entry):
     This class includes methods to perform richness computations on individual clusters using the associated neighbor galaxy catalog.
     """
 
-    def __init__(self, cat_vals=None, r0=None, beta=None, config=None, zredstr=None, bkg=None, cbkg=None, neighbors=None, zredbkg=None, dtype=None):
+    def __init__(self, cat_vals=None, r0=None, beta=None, config=None, zredstr=None, bkg=None, cbkg=None, neighbors=None, zredbkg=None, dtype=None, ra=None, dec=None):
         """
         Instantiate a Cluster object.
 
@@ -126,6 +126,10 @@ class Cluster(Entry):
            Neighbor galaxy catalog.  Default is None.
         zredbkg: `redmapper.ZredBackground`, optional
            Zred background.  Default is None.
+        ra : `float`, optional
+           RA of cluster if not in cat_vals.
+        dec : `float`, optional
+           Dec of cluster if not in cat_vals.
         """
 
         if cat_vals is None:
@@ -145,6 +149,11 @@ class Cluster(Entry):
         self.r0 = 1.0 if r0 is None else r0
         self.beta = 0.2 if beta is None else beta
 
+        if ra is not None:
+            self.ra = ra
+        if dec is not None:
+            self.dec = dec
+
         # FIXME: this should explicitly set our default cosmology
         if config is None:
             self.cosmo = Cosmo()
@@ -159,6 +168,9 @@ class Cluster(Entry):
 
         self._mstar = None
         self._mpc_scale = None
+
+        self.depth = None
+        self._bkg_local_valid = False
 
         if self.z > 0.0 and self.zredstr is not None:
             self.redshift = self.z
@@ -392,9 +404,9 @@ class Cluster(Entry):
         sigma_g = self.zredbkg.sigma_g_lookup(zred, refmag)
         return 2. * np.pi * r * (sigma_g / self.mpc_scale**2.)
 
-    def compute_bkg_local(self, mask, depth):
+    def compute_bkg_local_norm(self, mask, depth):
         """
-        Compute the local background relative to the global.
+        Compute the local background normalization and the global in an annulus.
 
         Parameters
         ----------
@@ -406,7 +418,9 @@ class Cluster(Entry):
         Returns
         -------
         bkg_local: `float`
-           Local background relative to global average for redshift
+           Local background (galaxies / Mpc2)
+        prediction : `float`
+           Predicted global background in annulus (galaxies / Mpc2)
         """
         ras = self.ra + (mask.maskgals.x_uniform/self.mpc_scale)/np.cos(np.deg2rad(self.dec))
         decs = self.dec + mask.maskgals.y_uniform/self.mpc_scale
@@ -424,7 +438,7 @@ class Cluster(Entry):
             else:
                 maskgals_depth = limpars['LIMMAG']
 
-        sigma_g_maskgals = self.bkg.sigma_g_lookup(self._redshift, mask.maskgals.chisq, mask.maskgals.refmag)
+        sigma_g_maskgals = self.bkg.sigma_g_lookup(self._redshift, mask.maskgals.chisq, maskgals_refmag)
 
         bright_enough, = np.where((mask.maskgals.refmag < maxmag) & (np.isfinite(sigma_g_maskgals))
 &
@@ -437,6 +451,7 @@ class Cluster(Entry):
         # What is the annulus area?
         in_annulus, = np.where((mask.maskgals.r_uniform > self.config.bkg_local_annuli[0]) &
                                (mask.maskgals.r_uniform < self.config.bkg_local_annuli[1]))
+
         in_annulus_gd, = np.where(maskgals_mark[in_annulus])
         annulus_area = (np.pi*((self.config.bkg_local_annuli[1]/self.mpc_scale)**2. -
                                (self.config.bkg_local_annuli[0]/self.mpc_scale)**2.) *
@@ -450,13 +465,52 @@ class Cluster(Entry):
         neighbors_in_annulus, = np.where((self.neighbors.r > self.config.bkg_local_annuli[0]) &
                                          (self.neighbors.r < self.config.bkg_local_annuli[1]) &
                                          (self.neighbors.refmag < maxmag) &
-                                         (self.neighbors.chisq < mask.maskgals.chisq.max()) &
+                                         # (self.neighbors.chisq < mask.maskgals.chisq.max()) &
+                                         (self.neighbors.chisq < self.config.bkg_local_chisq_cut) &
                                          (self.neighbors.refmag < neighbors_depth))
-        bkg_density_in_annulus = float(neighbors_in_annulus.size) / annulus_area
 
-        bkg_local = bkg_density_in_annulus / prediction
+        if annulus_area == 0.0:
+            bkg_density_in_annulus = 0.0
+        else:
+            bkg_density_in_annulus = float(neighbors_in_annulus.size) / annulus_area
 
-        return bkg_local
+        # Convert back to Mpc2
+        return bkg_density_in_annulus/self.mpc_scale**2., prediction/self.mpc_scale**2.
+
+    def calc_bkg_local_radial(self, bkg_local_excess, r):
+        """
+        Calculate the local background density radial function.
+
+        Parameters
+        ----------
+        bkg_local_excess : `float`
+           Excess local background for red galaxies (galaxies / Mpc**2)
+        r : `np.ndarray`
+           Array of radii
+
+        Returns
+        -------
+        bcounts_local_radial : `np.ndarray`
+           b_local(r) for the neighbors
+        """
+        if bkg_local_excess <= 0.0:
+            # There is nothing to see here, move along.
+            # That is, no local excess means no local background overdensity function
+            return np.zeros(r.size)
+
+        # Figure out the power-law slope...
+        plaw_slope = (self.config.bkg_local_plaw_model_z_intercept +
+                      (self._redshift - self.config.bkg_local_plaw_model_z_pivot)*
+                      self.config.bkg_local_plaw_model_z_slope)
+        # Given the annulus, we the slope-weighted pivot
+        slope_plus_1 = plaw_slope + 1
+        # Integrate the power-law over the annulus of interest
+        plaw_norm = (1./slope_plus_1)*(self.config.bkg_local_annuli[1]**slope_plus_1 -
+                                       self.config.bkg_local_annuli[0]**slope_plus_1)
+        # And the complete normalization is just the excess divided
+        bkg_local_norm = bkg_local_excess / plaw_norm
+
+        return bkg_local_norm*(r**plaw_slope)
 
     def calc_richness(self, mask, calc_err=True, index=None):
         """
@@ -490,7 +544,30 @@ class Cluster(Entry):
         phi = self._calc_luminosity(maxmag, idx=idx) #phi is lumwt in the IDL code
         ucounts = (2*np.pi*self.neighbors.r[idx]) * nfw * phi * rho
         bcounts = self.calc_bkg_density(self.neighbors.r[idx], self.neighbors.chisq[idx],
-                                         self.neighbors.refmag[idx])
+                                        self.neighbors.refmag[idx])
+
+        # If we need local background...
+        bcounts_local = 0.0
+        # import traceback
+        # traceback.print_stack()
+        # print(self.ra, self.dec)
+        # if self.config.bkg_local_use or self.config.bkg_local_compute:
+        if False:
+            if not self._bkg_local_valid:
+                # Need to (re)compute local background normalization
+                bkg_local_norm, prediction = self.compute_bkg_local_norm(mask,
+                                                                         self.depth)
+                self.bkg_local_excess = bkg_local_norm - prediction
+                self.bkg_local = bkg_local_norm / prediction
+                self._bkg_local_valid = True
+
+            if self.config.bkg_local_use:
+                # The local background is the luminosity function filter
+                # times the chisq filter times the local background radial profile,
+                # normalized to the annulus where we measure the excess.
+                bcounts_local = phi * rho * self.calc_bkg_local_radial(self.bkg_local_excess,
+                                                                       self.neighbors.r[idx])
+
 
         theta_i = calc_theta_i(self.neighbors.refmag[idx], self.neighbors.refmag_err[idx],
                                maxmag, self.zredstr.limmag)
@@ -502,7 +579,8 @@ class Cluster(Entry):
         except AttributeError:
             w = theta_i * np.ones_like(ucounts)
 
-        richness_obj = Solver(self.r0, self.beta, ucounts, bcounts,
+        richness_obj = Solver(self.r0, self.beta,
+                              ucounts, bcounts + bcounts_local,
                               self.neighbors.r[idx], w,
                               cpars=cpars, rsig=self.config.rsig)
 
@@ -803,7 +881,6 @@ class Cluster(Entry):
         self._update_mpc_scale()
         self._compute_neighbor_r()
 
-
     # want to change this and mpc_scale to properties,
     # and internal update methods.  When you update the redshift,
     # all of these things should be kept in sync.  That would be pretty cool.
@@ -839,6 +916,18 @@ class Cluster(Entry):
             # Clipping at 1e-6 to avoid singularities.
             self.neighbors.r = np.clip(self.mpc_scale * self.neighbors.dist, 1e-6, None)
 
+    @property
+    def bkg_local_valid(self):
+        """
+        Flag that indicates if the bkg_local value is valid for this cluster.
+        """
+        return self._bkg_local_valid
+
+    def invalidate_bkg_local(self):
+        """
+        Invalidate bkg_local to indicate it must be recomputed.
+        """
+        self._bkg_local_valid = False
 
     def copy(self):
         """
@@ -862,7 +951,9 @@ class Cluster(Entry):
                        zredstr=self.zredstr,
                        bkg=self.bkg,
                        cbkg=self.cbkg,
-                       neighbors=self.neighbors)
+                       neighbors=self.neighbors,
+                       ra=self.ra,
+                       dec=self.dec)
 
 class ClusterCatalog(Catalog):
     """
@@ -993,7 +1084,7 @@ class ClusterCatalog(Catalog):
                            cbkg=self.cbkg,
                            zredbkg=self.zredbkg)
         else:
-            return ClusterCatalog(self._ndarray.__getitem__(key),
+            return ClusterCatalog(cat_vals=self._ndarray.__getitem__(key),
                                   r0=self.r0,
                                   beta=self.beta,
                                   zredstr=self.zredstr,
