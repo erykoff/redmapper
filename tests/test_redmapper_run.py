@@ -70,7 +70,7 @@ class RedmapperRunTestCase(unittest.TestCase):
         # Spot checks to look for regressions
         testing.assert_equal(cat.size, 23)
         self.assertGreater(cat.Lambda.min(), 3.0)
-        testing.assert_array_almost_equal(cat.Lambda[0: 3], np.array([24.351152, 17.944063, 7.7384853]))
+        testing.assert_array_almost_equal(cat.Lambda[0: 3], np.array([23.588404, 18.172888, 6.990992]))
 
         # And check that the members are all accounted for...
         mem = Catalog.from_fits_file(os.path.join(config.outpath, '%s_final_members.fit' % (config.d.outbase)))

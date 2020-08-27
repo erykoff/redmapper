@@ -395,7 +395,7 @@ class ClusterRunner(object):
                                                  cluster.ra, cluster.dec, cluster.mpc_scale)
                     depth = self.depthstr
 
-                if self.config.bkg_local_use:
+                if self.config.bkg_local_use or self.config.bkg_local_compute:
                     cluster.depth = depth
 
                 cluster.lim_exptime = np.median(self.mask.maskgals.exptime)

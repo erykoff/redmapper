@@ -97,7 +97,7 @@ class Cluster(Entry):
     This class includes methods to perform richness computations on individual clusters using the associated neighbor galaxy catalog.
     """
 
-    def __init__(self, cat_vals=None, r0=None, beta=None, config=None, zredstr=None, bkg=None, cbkg=None, neighbors=None, zredbkg=None, dtype=None, ra=None, dec=None):
+    def __init__(self, cat_vals=None, r0=None, beta=None, config=None, zredstr=None, bkg=None, cbkg=None, neighbors=None, zredbkg=None, dtype=None, bkg_local_valid=False, depth=None):
         """
         Instantiate a Cluster object.
 
@@ -127,10 +127,10 @@ class Cluster(Entry):
            Neighbor galaxy catalog.  Default is None.
         zredbkg: `redmapper.ZredBackground`, optional
            Zred background.  Default is None.
-        ra : `float`, optional
-           RA of cluster if not in cat_vals.
-        dec : `float`, optional
-           Dec of cluster if not in cat_vals.
+        bkg_local_valid : `bool`, optional
+           Is the local background computation valid?
+        depth : `redmapper.Depthmap` or `redmapper.Depthlim`, optional
+           Depth map for survey or depth fitting.
         """
 
         if cat_vals is None:
@@ -150,11 +150,6 @@ class Cluster(Entry):
         self.r0 = 1.0 if r0 is None else r0
         self.beta = 0.2 if beta is None else beta
 
-        if ra is not None:
-            self.ra = ra
-        if dec is not None:
-            self.dec = dec
-
         # FIXME: this should explicitly set our default cosmology
         if config is None:
             self.cosmo = Cosmo()
@@ -170,8 +165,8 @@ class Cluster(Entry):
         self._mstar = None
         self._mpc_scale = None
 
-        self.depth = None
-        self._bkg_local_valid = False
+        self.depth = depth
+        self._bkg_local_valid = bkg_local_valid
 
         if self.z > 0.0 and self.zredstr is not None:
             self.redshift = self.z
@@ -405,7 +400,7 @@ class Cluster(Entry):
         sigma_g = self.zredbkg.sigma_g_lookup(zred, refmag)
         return 2. * np.pi * r * (sigma_g / self.mpc_scale**2.)
 
-    def compute_bkg_local_norm(self, mask, depth):
+    def compute_bkg_local_norm(self, mask):
         """
         Compute the local background normalization and the global in an annulus.
 
@@ -413,8 +408,6 @@ class Cluster(Entry):
         ----------
         mask: `redmapper.Mask`
            Footprint mask for survey
-        depth: `redmapper.Depthmap` or `redmapper.Depthlim`
-           Depth map for survey or depth fitting class
 
         Returns
         -------
@@ -423,6 +416,9 @@ class Cluster(Entry):
         prediction : `float`
            Predicted global background in annulus (galaxies / Mpc2)
         """
+        if self.depth is None:
+            raise RuntimeError("Must set depth before using compute_bkg_local_norm")
+
         ras = self.ra + (mask.maskgals.x_uniform/self.mpc_scale)/np.cos(np.deg2rad(self.dec))
         decs = self.dec + mask.maskgals.y_uniform/self.mpc_scale
 
@@ -430,12 +426,12 @@ class Cluster(Entry):
         maskgals_mark = mask.compute_radmask(ras, decs)
         maskgals_refmag = self.mstar + mask.maskgals.m
         try:
-            maskgals_depth = depth.get_depth_values(ras, decs)[0]
+            maskgals_depth = self.depth.get_depth_values(ras, decs)[0]
         except AttributeError:
             # We have a "Depthlim" limit.
             limpars, fail = calcErrorModel(self.neighbors.refmag, self.neighbors.refmag_err, calcErr=False)
             if fail:
-                maskgals_depth = depth.initpars['LIMMAG']
+                maskgals_depth = self.depth.initpars['LIMMAG']
             else:
                 maskgals_depth = limpars['LIMMAG']
 
@@ -454,13 +450,17 @@ class Cluster(Entry):
         in_annulus, = np.where((mask.maskgals.r_uniform > self.config.bkg_local_annuli[0]) &
                                (mask.maskgals.r_uniform < self.config.bkg_local_annuli[1]))
 
+        if in_annulus.size == 0:
+            bkg_density_in_annulus = 0.0
+            return bkg_density_in_annulus, prediction/self.mpc_scale**2.
+
         in_annulus_gd, = np.where(maskgals_mark[in_annulus])
         annulus_area = (np.pi*((self.config.bkg_local_annuli[1]/self.mpc_scale)**2. -
                                (self.config.bkg_local_annuli[0]/self.mpc_scale)**2.) *
                         (float(in_annulus_gd.size) / float(in_annulus.size)))
 
         try:
-            neighbors_depth = depth.get_depth_values(self.neighbors.ra, self.neighbors.dec)[0]
+            neighbors_depth = self.depth.get_depth_values(self.neighbors.ra, self.neighbors.dec)[0]
         except AttributeError:
             neighbors_depth = maskgals_depth
 
@@ -552,8 +552,7 @@ class Cluster(Entry):
         if self.config.bkg_local_use or self.config.bkg_local_compute:
             if not self._bkg_local_valid:
                 # Need to (re)compute local background normalization
-                bkg_local_norm, prediction = self.compute_bkg_local_norm(mask,
-                                                                         self.depth)
+                bkg_local_norm, prediction = self.compute_bkg_local_norm(mask)
                 self.bkg_local_excess = bkg_local_norm - prediction
                 self.bkg_local = bkg_local_norm / prediction
                 self._bkg_local_valid = True
@@ -942,15 +941,17 @@ class Cluster(Entry):
     def __copy__(self):
         # This returns a copy of the cluster, and note that the neighbors will
         # be deepcopied which is what we want.
-        return Cluster(r0=self.r0,
+        return Cluster(cat_vals=self._ndarray,
+                       r0=self.r0,
                        beta=self.beta,
                        config=self.config,
                        zredstr=self.zredstr,
                        bkg=self.bkg,
                        cbkg=self.cbkg,
                        neighbors=self.neighbors,
-                       ra=self.ra,
-                       dec=self.dec)
+                       bkg_local_valid=self.bkg_local_valid,
+                       depth=self.depth)
+
 
 class ClusterCatalog(Catalog):
     """
