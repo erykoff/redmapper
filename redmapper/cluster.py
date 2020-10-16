@@ -443,6 +443,10 @@ class Cluster(Entry):
                                   (mask.maskgals.chisq_pdf > 0.0) & (mask.maskgals.lum_pdf > 0.0) &
                                   (mask.maskgals.refmag < maskgals_depth))
 
+        if bright_enough.size == 0:
+            bkg_density_in_annulus = 0.0
+            return bkg_density_in_annulus, 0.0/self.mpc_scale**2.
+
         # Predicted number density according to global bkg
         prediction = np.sum(sigma_g_maskgals[bright_enough].astype(np.float64) / (mask.maskgals.chisq_pdf[bright_enough].astype(np.float64) * mask.maskgals.lum_pdf[bright_enough].astype(np.float64))) / float(bright_enough.size)
 
@@ -504,14 +508,14 @@ class Cluster(Entry):
                       (self._redshift - self.config.bkg_local_plaw_model_z_pivot)*
                       self.config.bkg_local_plaw_model_z_slope)
         # Given the annulus, we the slope-weighted pivot
-        slope_plus_1 = plaw_slope + 1
+        slope_plus_2 = plaw_slope + 2
         # Integrate the power-law over the annulus of interest
-        plaw_norm = (1./slope_plus_1)*(self.config.bkg_local_annuli[1]**slope_plus_1 -
-                                       self.config.bkg_local_annuli[0]**slope_plus_1)
+        plaw_norm = 2.*np.pi*(1./slope_plus_2)*(self.config.bkg_local_annuli[1]**slope_plus_2 -
+                                                self.config.bkg_local_annuli[0]**slope_plus_2)
         # And the complete normalization is just the excess divided
         bkg_local_norm = bkg_local_excess / plaw_norm
 
-        return bkg_local_norm*(r**plaw_slope)
+        return bkg_local_norm*2*np.pi*r*(r**plaw_slope)
 
     def calc_richness(self, mask, calc_err=True, index=None):
         """
@@ -553,8 +557,13 @@ class Cluster(Entry):
             if not self._bkg_local_valid:
                 # Need to (re)compute local background normalization
                 bkg_local_norm, prediction = self.compute_bkg_local_norm(mask)
-                self.bkg_local_excess = bkg_local_norm - prediction
-                self.bkg_local = bkg_local_norm / prediction
+                if bkg_local_norm == 0.0 or prediction == 0.0:
+                    # Set this to "average" background
+                    self.bkg_local_excess = 0.0
+                    self.bkg_local = 1.0
+                else:
+                    self.bkg_local_excess = bkg_local_norm - prediction
+                    self.bkg_local = bkg_local_norm / prediction
                 self._bkg_local_valid = True
 
             if self.config.bkg_local_use:
@@ -563,7 +572,6 @@ class Cluster(Entry):
                 # normalized to the annulus where we measure the excess.
                 bcounts_local = phi * rho * self.calc_bkg_local_radial(self.bkg_local_excess,
                                                                        self.neighbors.r[idx])
-
 
         theta_i = calc_theta_i(self.neighbors.refmag[idx], self.neighbors.refmag_err[idx],
                                maxmag, self.zredstr.limmag)
