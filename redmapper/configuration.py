@@ -388,6 +388,7 @@ class Configuration(object):
     redmagic_etas = ConfigField(default=[], required=True, isArray=True)
     redmagic_names = ConfigField(default=[], required=True, isList=True)
     redmagic_zmaxes = ConfigField(default=[], required=True, isArray=True)
+    redmagic_deltakappa = ConfigField(default=0.0, required=False)
 
     def __init__(self, configfile, outpath=None):
         """

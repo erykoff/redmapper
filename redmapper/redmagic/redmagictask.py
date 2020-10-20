@@ -96,6 +96,9 @@ l           Output path.  Default is None, use same absolute
                                               border=0.0,
                                               truth=self.config.has_truth)
 
+            if self.config.redmagic_deltakappa != 0.0:
+                gals.refmag = gals.refmag - 2.5*np.log10(1.0 + 2.0*self.config.redmagic_deltakappa)
+
             # Loop over all modes
             for j, mode in enumerate(modes):
                 # Select the red galaxies
