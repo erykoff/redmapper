@@ -220,13 +220,20 @@ with open(jobfile, 'w') as jf:
     elif (batchconfig[batchmode]['batch'] == 'pbs'):
         # PBS mode
         ppn = batchconfig[batchmode]['ppn']
-        n_nodes = int(np.ceil(float(hpix_run.size) / float(ppn)))
+        # n_nodes = int(np.ceil(float(hpix_run.size) / float(ppn)))
+        n_nodes = 1
         jf.write("#PBS -q %s\n" % (batchconfig[batchmode]['queue']))
         jf.write("#PBS -l nodes=%d:ppn=%d\n" % (n_nodes, ppn))
         jf.write("#PBS -l walltime=%d:00:00\n" % (int(walltime / 60)))
         jf.write("#PBS -l mem=%dmb\n" % (memory))
         jf.write("#PBS -j oe\n")
-        jf.write('N_CPU=%d\n' % (n_nodes * batchconfig[batchmode]['ppn']))
+        jf.write('#PBS -N %s\n' % (jobname))
+        jf.write("#PBS -o %s\n" % (os.path.join(jobpath, '%s_%d.log' % (jobname, index + 1))))
+        jf.write("#PBS -t 1-%d\n" % (hpix_run.size))
+        # jf.write('N_CPU=%d\n' % (n_nodes * batchconfig[batchmode]['ppn']))
+        
+        index_string = '${pixarr[PBS_ARRAYID-1]}'
+
     elif ((batchconfig[batchmode]['batch'] == 'slurm') and
           (batchconfig[batchmode]['taskfarmer'])):
         if ((batchconfig[batchmode]['qos'] == '' or
