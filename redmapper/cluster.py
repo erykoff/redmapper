@@ -486,7 +486,7 @@ class Cluster(Entry):
         phi = self._calc_luminosity(maxmag, idx=idx) #phi is lumwt in the IDL code
         ucounts = (2*np.pi*self.neighbors.r[idx]) * nfw * phi * rho
         bcounts = self.calc_bkg_density(self.neighbors.r[idx], self.neighbors.chisq[idx],
-                                         self.neighbors.refmag[idx])
+                                        self.neighbors.refmag[idx])
 
         theta_i = calc_theta_i(self.neighbors.refmag[idx], self.neighbors.refmag_err[idx],
                                maxmag, self.zredstr.limmag)

@@ -26,8 +26,10 @@ scripts = ['bin/redmapper_run_zred_pixel.py',
            'bin/redmapper_consolidate_runcat.py',
            'bin/redmapper_runcat_pixel.py',
            'bin/redmapper_run_zmask_pixel.py',
+           'bin/redmapper_run_zscan_pixel.py',
            'bin/redmapper_generate_randoms.py',
-           'bin/redmapper_weight_randoms.py']
+           'bin/redmapper_weight_randoms.py',
+           'bin/redmapper_predict_memory.py']
 
 include_dirs = [numpy.get_include()]
 

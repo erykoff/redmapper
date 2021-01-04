@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from .catalog import Catalog, Entry
 from .mask import get_mask
 from .utilities import make_lockfile
+from .utilities import getMemoryString
 
 
 def zred_extra_dtype(nsamp):
@@ -227,7 +228,10 @@ class GalaxyCatalog(Catalog):
             dtype = dtype_in
             columns = None
 
-        cat = np.zeros(np.sum(tab.ngals[indices]), dtype=dtype)
+        cat_fields = [dt[0] for dt in dtype]
+
+        # New more memory efficient reading...
+        ngals = np.sum(tab.ngals[indices])
 
         if use_zred:
             try:
@@ -236,7 +240,11 @@ class GalaxyCatalog(Catalog):
                 fname = os.path.join(zpath, ztab.filenames[indices[0]])
 
             zelt = fitsio.read(fname, ext=1, rows=0, upper=False)
-            zcat = np.zeros(cat.size, dtype=zelt.dtype)
+            zcat_fields = [dt[0] for dt in zelt.dtype.descr]
+
+            dtype.extend(zelt.dtype.descr)
+
+        cat = np.zeros(np.sum(tab.ngals[indices]), dtype=dtype)
 
         # read the files
         ctr = 0
@@ -245,14 +253,16 @@ class GalaxyCatalog(Catalog):
                 fname = os.path.join(path, tab.filenames[index].decode())
             except AttributeError:
                 fname = os.path.join(path, tab.filenames[index])
-            cat[ctr: ctr + tab.ngals[index]] = fitsio.read(fname, ext=1, lower=True, columns=columns)
+
+            cat[cat_fields][ctr: ctr + tab.ngals[index]] = fitsio.read(fname, ext=1, lower=True, columns=columns)
+
             if use_zred:
                 # Note that this effectively checks that the numbers of rows in each file match properly (though the exception will be cryptic...)
                 try:
                     fname = os.path.join(zpath, ztab.filenames[index].decode())
                 except AttributeError:
                     fname = os.path.join(zpath, ztab.filenames[index])
-                zcat[ctr: ctr + tab.ngals[index]] = fitsio.read(fname, ext=1, upper=False)
+                cat[zcat_fields][ctr: ctr + tab.ngals[index]] = fitsio.read(fname, ext=1, upper=False)
             ctr += tab.ngals[index]
 
         if len(_hpix) == 1 and nside > 0 and border > 0.0:
@@ -274,16 +284,10 @@ class GalaxyCatalog(Catalog):
             ipring = hp.ang2pix(nside_cutref, theta, phi)
             _, indices = esutil.numpy_util.match(inhpix, ipring)
 
-            if use_zred:
-                return cls(cat[indices], zcat[indices])
-            else:
-                return cls(cat[indices])
+            return cls(cat[indices])
         else:
             # No cuts
-            if use_zred:
-                return cls(cat, zcat)
-            else:
-                return cls(cat)
+            return cls(cat)
 
     @property
     def galcol(self):

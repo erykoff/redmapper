@@ -647,6 +647,6 @@ class ClusterRunner(object):
         """
         if self._filename is None:
             # Return the unversioned, default filename
-            return self.config.redmapper_filename(self.filetype)
+            return self.config.redmapper_filename(self.filetype + '_catalog')
         else:
             return self._filename

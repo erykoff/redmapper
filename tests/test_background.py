@@ -46,8 +46,8 @@ class BackgroundTestCase(unittest.TestCase):
                         19.88279, 15.56617587, 18.55626717, 15.00271158])
 
         py_outputs = bkg.sigma_g_lookup(z, chisq, refmag)
-        idl_outputs = np.array([np.inf, 0.0012997627, 0.56412143, 6.4126010, 
-                                43.4550, 0.012194233, np.inf, 0.0])
+        idl_outputs = np.array([np.inf, 0.0012997627, 0.56412143, 6.4126010,
+                                43.4550, 0.012194233, np.inf, np.inf])
         # idl_ouputs[4] = 42.555183
         testing.assert_almost_equal(py_outputs, idl_outputs, decimal=4)
 

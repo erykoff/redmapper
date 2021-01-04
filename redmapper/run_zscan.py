@@ -33,6 +33,7 @@ class RunZScan(ClusterRunner):
         self.runmode = 'zscan'
         self.read_zreds = True
         self.zreds_required = True
+        self.zredbkg_required = True
         self.cutgals_bkgrange = True
         self.cutgals_chisqmax = False
         self.use_rmask_settings = False
@@ -54,6 +55,7 @@ class RunZScan(ClusterRunner):
                                                zredstr=self.zredstr,
                                                config=self.config,
                                                bkg=self.bkg,
+                                               zredbkg=self.zredbkg,
                                                cosmo=self.cosmo,
                                                r0=self.r0,
                                                beta=self.beta)

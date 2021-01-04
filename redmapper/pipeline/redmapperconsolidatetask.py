@@ -75,7 +75,7 @@ class RedmapperConsolidateTask(object):
         """
 
         # find the files
-        catfiles = sorted(glob.glob(os.path.join(self.config.outpath, '%s_*_?????_final.fit' % (self.config.outbase))))
+        catfiles = sorted(glob.glob(os.path.join(self.config.outpath, '%s_*_?????_final_catalog.fit' % (self.config.outbase))))
 
         self.config.logger.info("Found %d catalog files in %s" % (len(catfiles), self.config.outpath))
 

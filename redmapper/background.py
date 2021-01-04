@@ -168,7 +168,8 @@ class Background(object):
         lookup_vals[badrefmag] = np.inf
 
         if not allow0:
-            lookup_vals[np.where((lookup_vals == 0) & (chisq > 5.0))] = np.inf
+            lookup_vals[lookup_vals == 0.0] = np.inf
+
         return lookup_vals
 
 class ZredBackground(object):

@@ -49,8 +49,8 @@ class ConsolidateTestCase(unittest.TestCase):
         test_arr['ra'][:] = np.degrees(phi)
         test_arr['dec'][:] = 90.0 - np.degrees(theta)
         cat0 = ClusterCatalog(test_arr)
-        cat0.to_fits_file(config.redmapper_filename('cat_4_00000_final'))
-        cat0.to_fits_file(config.redmapper_filename('cat_4_00000_final_members'))
+        cat0.to_fits_file(config.redmapper_filename('cat_4_00000_final_catalog'))
+        cat0.to_fits_file(config.redmapper_filename('cat_4_00000_final_catalog_members'))
 
         # Do cat1, pixel 1
         theta, phi = hp.pix2ang(nside, 1)
@@ -60,8 +60,8 @@ class ConsolidateTestCase(unittest.TestCase):
         test_arr['ra'][:] = np.degrees(phi)
         test_arr['dec'][:] = 90.0 - np.degrees(theta)
         cat1 = ClusterCatalog(test_arr)
-        cat1.to_fits_file(config.redmapper_filename('cat_4_00001_final'))
-        cat1.to_fits_file(config.redmapper_filename('cat_4_00001_final_members'))
+        cat1.to_fits_file(config.redmapper_filename('cat_4_00001_final_catalog'))
+        cat1.to_fits_file(config.redmapper_filename('cat_4_00001_final_catalog_members'))
 
         # Do cat2, pixel 2
         theta, phi = hp.pix2ang(nside, 2)
@@ -71,8 +71,8 @@ class ConsolidateTestCase(unittest.TestCase):
         test_arr['ra'][:] = np.degrees(phi)
         test_arr['dec'][:] = 90.0 - np.degrees(theta)
         cat2 = ClusterCatalog(test_arr)
-        cat2.to_fits_file(config.redmapper_filename('cat_4_00002_final'))
-        cat2.to_fits_file(config.redmapper_filename('cat_4_00002_final_members'))
+        cat2.to_fits_file(config.redmapper_filename('cat_4_00002_final_catalog'))
+        cat2.to_fits_file(config.redmapper_filename('cat_4_00002_final_catalog_members'))
 
         # need to write config out in test directory...
         config_file = config.redmapper_filename('testconfig', filetype='yaml')

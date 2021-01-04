@@ -1,11 +1,9 @@
 astropy
 matplotlib
-nose
 pyyaml
 fitsio
 esutil
 numpy
 healpy
 scipy
-future
 healsparse

@@ -1,2 +1,5 @@
 include redmapper/data/initcolors/*.fit
 include redmapper/data/mstar/*.fit
+include LICENSE
+include README.md
+include requirements.txt
