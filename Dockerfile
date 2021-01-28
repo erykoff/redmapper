@@ -29,14 +29,13 @@ RUN	echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
 RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/startup.sh && \
         echo "conda activate redmapper-env" >> ~/startup.sh
 
-RUN . /opt/conda/etc/profile.d/conda.sh && conda activate redmapper-env && conda install --yes python=3.7 numpy scipy nose && \
+RUN . /opt/conda/etc/profile.d/conda.sh && conda activate redmapper-env && conda install --yes python=3.8 numpy scipy nose && \
        conda clean -af --yes
 
 LABEL redmapper-tag="${TAG}"
 
 RUN . /opt/conda/etc/profile.d/conda.sh && conda activate redmapper-env && cd ~/ && \
        git clone https://github.com/erykoff/redmapper --branch=${TAG} && cd ~/redmapper && pip install -r requirements.txt --no-cache-dir && \
-       cd ~/ && git clone https://github.com/LSSTDESC/healsparse.git && cd ~/healsparse && python setup.py install && \
        cd ~/redmapper && python setup.py install
 
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
