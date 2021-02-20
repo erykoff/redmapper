@@ -81,7 +81,8 @@ class RedmapperCalibrator(object):
         else:
             self.config.logger.info("Constructing maskgals...")
             # This will generate the maskgalfile if it isn't found
-            mask = get_mask(self.config)
+            mask = get_mask(self.config, include_maskgals=False)
+            mask.gen_maskgals(self.config.maskgalfile)
 
         # Do the color-lambda training.
         self.config.zmemfile = self.config.redmapper_filename('iter0_colormem_pgt%4.2f_lamgt%02d' % (self.config.calib_pcut, self.config.calib_colormem_minlambda))

@@ -41,7 +41,7 @@ class Mask(object):
         """
         self.config = config
 
-        # This will generate a maskgalfile if necessary
+        # This will raise if maskgals aren't available
         if include_maskgals:
             self.read_maskgals(config.maskgalfile)
 
@@ -82,30 +82,18 @@ class Mask(object):
            Filename of maskgal file with monte carlo galaxies
         """
 
-        make_maskgals = False
-        lockfile = maskgalfile + '.lock'
-        locktest = make_lockfile(lockfile, block=True, maxtry=300, waittime=2)
-        if not locktest:
-            raise RuntimeError("Could not get a lock to read/write maskgals!")
-
         if not os.path.isfile(maskgalfile):
-            # We don't have the maskgals...generate them
-            self._gen_maskgals(maskgalfile)
+            raise RuntimeError("Could not find maskgalfile %s.  Please run mask.gen_maskgals(maskgalfile)" % (maskgalfile))
 
         # Check version
         hdr = fitsio.read_header(maskgalfile, ext=1)
         if (hdr['version'] != CURRENT_MASKGAL_VERSION):
-            # Generate new maskgals
-            self.config.logger.info("Found old maskgals file (version %d).  Generating version %d" % (hdr['version'], CURRENT_MASKGAL_VERSION))
-            self._gen_maskgals(maskgalfile)
+            raise RuntimeError("maskgalfile %s is old version.  Please run mask.gen_maskgals(maskgalfile)" % (maskgalfile))
 
         # Read the maskgals
         # These are going to be *all* the maskgals, but we only operate on a subset
         # at a time
         self.maskgals_all = Catalog.from_fits_file(maskgalfile)
-
-        # Clear lockfile
-        os.remove(lockfile)
 
     def select_maskgals_sample(self, maskgal_index=None):
         """
@@ -128,9 +116,9 @@ class Mask(object):
 
         return maskgal_index
 
-    def _gen_maskgals(self, maskgalfile):
+    def gen_maskgals(self, maskgalfile):
         """
-        Internal method to generate the maskgal monte carlo galaxies.
+        Method to generate the maskgal monte carlo galaxies.
 
         Parameters
         ----------
@@ -175,7 +163,7 @@ class Mask(object):
                                                ('eff', 'f4'),
                                                ('w', 'f4'),
                                                ('theta_r', 'f4', nradbins),
-                                               ('mark', np.bool),
+                                               ('mark', bool),
                                                ('radbins', 'f4', nradbins),
                                                ('nin', 'f4', nradbins),
                                                ('nin_orig', 'f4', nradbins),
@@ -412,7 +400,7 @@ class HPMask(Mask):
         fracgood = np.zeros(ras.size)
         fracgood[gd] = self.sparse_fracgood.get_values_pos(ras[gd], decs[gd], lonlat=True)
 
-        radmask = np.zeros(ras.size, dtype=np.bool)
+        radmask = np.zeros(ras.size, dtype=bool)
         radmask[np.where(fracgood > np.random.rand(ras.size))] = True
         return radmask
 

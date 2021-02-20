@@ -187,7 +187,7 @@ class GalaxyCatalog(Catalog):
             # I don't know if this is what we want going forward, but I'll leave
             # it like this at the moment.
             # Also, we are assuming that the files actually match up in terms of length, etc.
-            mark = np.zeros(indices.size, dtype=np.bool)
+            mark = np.zeros(indices.size, dtype=bool)
             for i, f in enumerate(ztab.filenames[indices]):
                 try:
                     fname = os.path.join(zpath, f.decode())

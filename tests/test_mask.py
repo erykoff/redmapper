@@ -96,6 +96,7 @@ class MaskTestCase(unittest.TestCase):
         random.seed(seed=12345)
 
         # This will generate the file if it isn't there
+        mask.gen_maskgals(maskgalfile)
         mask.read_maskgals(maskgalfile)
 
         maskgals, hdr = fitsio.read(maskgalfile, ext=1, header=True)

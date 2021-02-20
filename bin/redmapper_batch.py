@@ -6,7 +6,6 @@ Create a batch configuration script to submit to a cluster.
 from __future__ import division, absolute_import, print_function
 
 import os
-import sys
 import argparse
 import yaml
 import healpy as hp
@@ -175,12 +174,15 @@ if not os.path.isdir(jobpath):
 test = glob.glob(os.path.join(jobpath, '%s_?.job' % (jobname)))
 index = len(test)
 
+need_maskgals = False
+
 if args.runmode == 0:
     # Run in the directory where the config file is, by default
     run_command = 'redmapper_run_redmapper_pixel.py -c %s -p %%s -n %d -d %s' % (
         (os.path.abspath(args.configfile),
          nside,
          os.path.dirname(os.path.abspath(args.configfile))))
+    need_maskgals = True
 elif args.runmode == 1:
     run_command = 'redmapper_run_zred_pixel.py -c %s -p %%s -n %d -d %s' % (
         (os.path.abspath(args.configfile),
@@ -191,16 +193,26 @@ elif args.runmode == 2:
         (os.path.abspath(args.configfile),
          nside,
          os.path.dirname(os.path.abspath(args.configfile))))
+    need_maskgals = True
 elif args.runmode == 3:
     run_command = 'redmapper_run_zmask_pixel.py -c %s -p %%s -n %d -d %s' % (
         (os.path.abspath(args.configfile),
          nside,
          os.path.dirname(os.path.abspath(args.configfile))))
+    need_maskgals = True
 elif args.runmode == 4:
     run_command = 'redmapper_run_zscan_pixel.py -c %s -p %%s -n %d -d %s' % (
         (os.path.abspath(args.configfile),
          nside,
          os.path.dirname(os.path.abspath(args.configfile))))
+    need_maskgals = True
+
+if need_maskgals:
+    # Check to see if maskgals are there, and generate them if not.
+    if not os.path.isfile(config.maskgalfile):
+        print("Did not find maskgalfile %s.  Generating now." % (config.maskgalfile))
+        mask = redmapper.mask.get_mask(config, include_maskgals=False)
+        mask.gen_maskgals(config.maskgalfile)
 
 jobfile = os.path.join(jobpath, '%s_%d.job' % (jobname, index + 1))
 

@@ -192,7 +192,7 @@ class SelectSpecRedGalaxies(object):
                                   self.config.calib_colormem_zbounds,
                                   np.array([zrange[1] + 0.011])])
 
-        mark = np.zeros(gals.size, dtype=np.bool)
+        mark = np.zeros(gals.size, dtype=bool)
 
         for m in range(nmodes):
             u, = np.where((gals.z > zbounds[m]) &

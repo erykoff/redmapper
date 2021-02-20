@@ -109,7 +109,7 @@ class RedmapperConsolidateTask(object):
             vlim_masks = [VolumeLimitMaskFixed(self.config)]
             vlim_areas = [vlim_masks[0].get_areas()]
 
-        started = np.zeros((len(self.lambda_cuts), len(vlim_masks)), dtype=np.bool)
+        started = np.zeros((len(self.lambda_cuts), len(vlim_masks)), dtype=bool)
         cat_filename_dict = {}
 
         # Unique counter for temporary ids

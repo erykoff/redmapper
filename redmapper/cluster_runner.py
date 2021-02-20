@@ -162,7 +162,7 @@ class ClusterRunner(object):
             self.zlambda_corr = None
 
         # read in mask (if available)
-        # This will read in the mask and generate maskgals if necessary
+        # This will read in the mask and maskgals
         #  Will work with any type of mask
         self.mask = get_mask(self.config)
 

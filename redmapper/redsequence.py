@@ -592,9 +592,9 @@ class RedSequenceColorPar(object):
            List of string names of bands for labeling
         """
 
-        noff = (self.ncol * self.ncol - self.ncol) / 2
+        noff = (self.ncol * self.ncol - self.ncol) // 2
 
-        nrow = (noff + 1) / 2
+        nrow = (noff + 1) // 2
 
         not_extrap, = np.where(~self.extrapolated)
 

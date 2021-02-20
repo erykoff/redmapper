@@ -653,7 +653,7 @@ class RedmagicCalibrator(object):
             if okspec.size > 10:
                 fig = specplot.plot_values(gals.zspec[gd[okspec]], gals.zredmagic[gd[okspec]],
                                            gals.zredmagic_e[gd[okspec]],
-                                           name='z_{\mathrm{redmagic}}',
+                                           name=r'z_{\mathrm{redmagic}}',
                                            title='%s: %3.1f-%02d' %
                                            (calstr.name.decode(), calstr.etamin, int(calstr.n0)),
                                            calib_zrange=cost_zrange,
@@ -669,8 +669,8 @@ class RedmagicCalibrator(object):
             if okcal.size > 10:
                 fig = specplot.plot_values(gals.zcal[gd[okcal]], gals.zredmagic[gd[okcal]],
                                            gals.zredmagic_e[gd[okcal]],
-                                           name='z_{\mathrm{redmagic}}',
-                                           specname='z_{\mathrm{cal}}',
+                                           name=r'z_{\mathrm{redmagic}}',
+                                           specname=r'z_{\mathrm{cal}}',
                                            title='%s: %3.1f-%02d' %
                                            (calstr.name.decode(), calstr.etamin, int(calstr.n0)),
                                            calib_zrange=cost_zrange,

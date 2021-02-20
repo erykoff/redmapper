@@ -246,7 +246,7 @@ class Zlambda(object):
             ncount = use.size
 
         st = np.argsort(wtvals[use])[::-1]
-        pthresh = wtvals[use[st[np.int(np.around(ncount)-1)]]]
+        pthresh = wtvals[use[st[np.int64(np.around(ncount)-1)]]]
 
         pw  = 1./(np.exp((pthresh-wtvals[use])/0.04)+1)
         gd, = np.where(pw > 1e-3)
@@ -627,7 +627,7 @@ class ZlambdaCorrectionPar(object):
         except:
             pass
 
-        self.extrapolated = np.zeros_like(self.z, dtype=np.bool)
+        self.extrapolated = np.zeros_like(self.z, dtype=bool)
 
         self.offset = np.zeros((self.niter, nbins))
         self.slope = np.zeros_like(self.offset)
