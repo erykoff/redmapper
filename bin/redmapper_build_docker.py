@@ -13,7 +13,7 @@ parser.add_argument('-v', '--versiontag', action='store', type=str, required=Fal
 args = parser.parse_args()
 
 if args.versiontag == '':
-    versiontag = 'v' + redmapper.__version__
+    versiontag = redmapper.__version__
 else:
     versiontag = args.versiontag
 

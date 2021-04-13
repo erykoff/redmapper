@@ -6,7 +6,7 @@ ARG TAG
 
 RUN apt-get update && \
     apt-get install -y autoconf gcc gfortran g++ make wget gsl-bin git libgsl-dev && apt-get clean all
-    
+
 RUN apt-get install -y curl grep sed dpkg
 RUN TINI_VERSION=`curl https://github.com/krallin/tini/releases/latest | grep -o "/v.*\"" | sed 's:^..\(.*\).$:\1:'` && \
         curl -L "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}.deb" > tini.deb
