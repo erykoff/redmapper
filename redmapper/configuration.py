@@ -400,6 +400,8 @@ class Configuration(object):
     redmagic_etas = ConfigField(default=[], required=True, isArray=True)
     redmagic_names = ConfigField(default=[], required=True, isList=True)
     redmagic_zmaxes = ConfigField(default=[], required=True, isArray=True)
+    redmagic_constchis = ConfigField(default=[], required=True, isArray=True)
+    redmagic_use_constchi = ConfigField(default=False, required=True)
 
     def __init__(self, configfile, outpath=None):
         """

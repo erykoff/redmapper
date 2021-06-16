@@ -28,7 +28,7 @@ class RedmagicParameterFitter(object):
                  chisq, mstar, zcal, zcal_err, refmag,
                  zsamp, zmax, etamin, n0,
                  volume, zrange, zbinsize, zredstr, maxchi=20.0,
-                 ab_use=None, ab_apply=False):
+                 ab_use=None, ab_apply=False, constchi=None):
         """
         Instantiate a RedmagicParameterFitter
 
@@ -75,6 +75,8 @@ class RedmagicParameterFitter(object):
            Required only if running in afterburner mode
         ab_apply: `bool`, optional
            Apply the afterburner to the sampled redshifts? Default is False.
+        constchi : `float`, optional
+            Use a constant chi2 cut instead of fitting that part.
         """
         self._nodes = np.atleast_1d(nodes).astype(np.float64)
         self._corrnodes = np.atleast_1d(corrnodes).astype(np.float64)
@@ -102,6 +104,7 @@ class RedmagicParameterFitter(object):
         self._zredstr = zredstr
         self._ab_use = ab_use
         self._ab_apply = ab_apply
+        self._constchi = constchi
 
         self._maxchi = maxchi
         self._afterburner = False
@@ -548,39 +551,45 @@ class RedmagicCalibrator(object):
             # Compute the density based on the histogram above and the volume
             dens = h.astype(np.float64) / volume
 
-            bad, = np.where(dens < self.config.redmagic_n0s[i] * 1e-4)
-            if bad.size > 0:
-                self.config.logger.info("Warning: not enough galaxies at z=%s" % (zbins[bad].__str__()))
+            if not self.config.redmagic_use_constchi:
+                bad, = np.where(dens < self.config.redmagic_n0s[i] * 1e-4)
+                if bad.size > 0:
+                    self.config.logger.info("Warning: not enough galaxies at z=%s" % (zbins[bad].__str__()))
 
             # get starting values
             cmaxvals = np.zeros(nodes.size)
 
-            aind = np.searchsorted(astr.z, nodes)
-            test_areas = astr.area[aind]
+            if self.config.redmagic_use_constchi:
+                cmaxvals[:] = self.config.redmagic_constchis[i]
+                _constchi = self.config.redmagic_constchis[i]
+            else:
+                _constchi = None
+                aind = np.searchsorted(astr.z, nodes)
+                test_areas = astr.area[aind]
 
-            test_vol = np.zeros(nodes.size)
-            for j in range(nodes.size):
-                test_vol[j] = (self.config.cosmo.V(nodes[j] - self.config.redmagic_calib_zbinsize/2.,
-                                                   nodes[j] + self.config.redmagic_calib_zbinsize/2.) *
-                               (test_areas[j] / 41252.961))
+                test_vol = np.zeros(nodes.size)
+                for j in range(nodes.size):
+                    test_vol[j] = (self.config.cosmo.V(nodes[j] - self.config.redmagic_calib_zbinsize/2.,
+                                                       nodes[j] + self.config.redmagic_calib_zbinsize/2.) *
+                                   (test_areas[j] / 41252.961))
 
-            for j in range(nodes.size):
-                zrange = [nodes[j] - self.config.redmagic_calib_zbinsize/2.,
-                          nodes[j] + self.config.redmagic_calib_zbinsize/2.]
-                if j == 0:
-                    zrange = [nodes[j],
-                              nodes[j] + self.config.redmagic_calib_zbinsize]
-                elif j == nodes.size - 1:
-                    zrange = [nodes[j] - self.config.redmagic_calib_zbinsize,
-                              nodes[j]]
+                for j in range(nodes.size):
+                    zrange = [nodes[j] - self.config.redmagic_calib_zbinsize/2.,
+                              nodes[j] + self.config.redmagic_calib_zbinsize/2.]
+                    if j == 0:
+                        zrange = [nodes[j],
+                                  nodes[j] + self.config.redmagic_calib_zbinsize]
+                    elif j == nodes.size - 1:
+                        zrange = [nodes[j] - self.config.redmagic_calib_zbinsize,
+                                  nodes[j]]
 
-                u, = np.where((gals.zuse[red_poss] > zrange[0]) &
-                              (gals.zuse[red_poss] < zrange[1]))
+                    u, = np.where((gals.zuse[red_poss] > zrange[0]) &
+                                  (gals.zuse[red_poss] < zrange[1]))
 
-                st = np.argsort(gals.chisq[red_poss[u]])
-                test_den = np.arange(u.size) / test_vol[j]
-                ind = np.clip(np.searchsorted(test_den, self.config.redmagic_n0s[i] * 1e-4), 0, test_den.size - 1)
-                cmaxvals[j] = gals.chisq[red_poss[u[st[ind]]]]
+                    st = np.argsort(gals.chisq[red_poss[u]])
+                    test_den = np.arange(u.size) / test_vol[j]
+                    ind = np.clip(np.searchsorted(test_den, self.config.redmagic_n0s[i] * 1e-4), 0, test_den.size - 1)
+                    cmaxvals[j] = gals.chisq[red_poss[u[st[ind]]]]
 
             # minimize chisquared parameters
             rmfitter = RedmagicParameterFitter(nodes, corrnodes,
@@ -596,10 +605,12 @@ class RedmagicCalibrator(object):
                                                zredstr,
                                                maxchi=self.config.redmagic_calib_chisqcut,
                                                ab_use=afterburner_use,
-                                               ab_apply=self.config.redmagic_apply_afterburner_zsamp)
+                                               ab_apply=self.config.redmagic_apply_afterburner_zsamp,
+                                               constchi=_constchi)
 
-            self.config.logger.info("Fitting first pass...")
-            cmaxvals = rmfitter.fit(cmaxvals, afterburner=False)
+            if not self.config.redmagic_use_constchi:
+                self.config.logger.info("Fitting first pass...")
+                cmaxvals = rmfitter.fit(cmaxvals, afterburner=False)
 
             # default is no bias or eratio
             biasvals = np.zeros(corrnodes.size)
@@ -609,12 +620,13 @@ class RedmagicCalibrator(object):
             if self.config.redmagic_run_afterburner:
                 self.config.logger.info("Fitting with afterburner...")
 
-                # Let's look at 5 iterations here...
-                for k in range(5):
-                    self.config.logger.info("Afterburner iteration %d" % (k))
-                    # Fit the bias and eratio...
-                    biasvals, eratiovals = rmfitter.fit_bias_eratio(cmaxvals, biasvals, eratiovals)
-                    cmaxvals = rmfitter.fit(cmaxvals, biaspars=biasvals, eratiopars=eratiovals, afterburner=True)
+                if not self.config.redmagic_use_constchi:
+                    # Let's look at 5 iterations here...
+                    for k in range(5):
+                        self.config.logger.info("Afterburner iteration %d" % (k))
+                        # Fit the bias and eratio...
+                        biasvals, eratiovals = rmfitter.fit_bias_eratio(cmaxvals, biasvals, eratiovals)
+                        cmaxvals = rmfitter.fit(cmaxvals, biaspars=biasvals, eratiopars=eratiovals, afterburner=True)
 
                 # And a last fit of bias/eratio
                 biasvals, eratiovals = rmfitter.fit_bias_eratio(cmaxvals, biasvals, eratiovals)
