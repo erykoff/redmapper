@@ -453,8 +453,8 @@ class Configuration(object):
         self.logger = logging.getLogger(logname)
 
         # validate the galfile and refmag
-        type(self).__dict__['galfile'].validate('galfile')
-        type(self).__dict__['refmag'].validate('refmag')
+        Configuration.__dict__['galfile'].validate('galfile')
+        Configuration.__dict__['refmag'].validate('refmag')
 
         # get galaxy file stats
         gal_stats = self._galfile_stats()
@@ -578,9 +578,9 @@ class Configuration(object):
            If any config field is not legal, ValueError is raised.
         """
 
-        for var in type(self).__dict__:
+        for var in Configuration.__dict__:
             try:
-                type(self).__dict__[var].validate(var)
+                Configuration.__dict__[var].validate(var)
             except AttributeError:
                 pass
 
@@ -632,9 +632,9 @@ class Configuration(object):
         """
         Internal method to reset variables to defaults
         """
-        for var in type(self).__dict__:
+        for var in Configuration.__dict__:
             try:
-                type(self).__dict__[var].reset()
+                Configuration.__dict__[var].reset()
             except AttributeError:
                 pass
 
@@ -653,7 +653,7 @@ class Configuration(object):
         for key in d:
             if check_none and d[key] is None:
                 continue
-            if key not in type(self).__dict__:
+            if key not in Configuration.__dict__:
                 raise AttributeError("Unknown config variable: %s" % (key))
             try:
                 setattr(self, key, d[key])
@@ -672,9 +672,9 @@ class Configuration(object):
            Validation length
         """
         for arr in l:
-            if arr not in type(self).__dict__:
+            if arr not in Configuration.__dict__:
                 raise AttributeError("Unknown config variable: %s" % (arr))
-            type(self).__dict__[arr].set_length(length)
+            Configuration.__dict__[arr].set_length(length)
 
 
     def _galfile_stats(self):
@@ -959,18 +959,18 @@ class Configuration(object):
            Output yaml filename
         """
         out_dict = {}
-        for key in type(self).__dict__:
-            if isinstance(type(self).__dict__[key], ConfigField):
-                if type(self).__dict__[key]._isArray:
+        for key in Configuration.__dict__:
+            if isinstance(Configuration.__dict__[key], ConfigField):
+                if Configuration.__dict__[key]._isArray:
                     # Convert all elements to python types and make a list
-                    out_dict[key] = np.ndarray.tolist(type(self).__dict__[key]._value)
+                    out_dict[key] = np.ndarray.tolist(Configuration.__dict__[key]._value)
                 else:
                     # Try to use numpy to convert to scalar; if it doesn't work then
                     # it's not numpy and we can use the value directly
                     try:
-                        out_dict[key] = type(self).__dict__[key]._value.item()
+                        out_dict[key] = Configuration.__dict__[key]._value.item()
                     except (ValueError, AttributeError, TypeError):
-                        out_dict[key] = type(self).__dict__[key]._value
+                        out_dict[key] = Configuration.__dict__[key]._value
 
         with open(filename, 'w') as f:
             yaml.dump(out_dict, stream=f)
