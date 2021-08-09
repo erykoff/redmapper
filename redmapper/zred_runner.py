@@ -136,6 +136,8 @@ class ZredRunCatalog(object):
         # Need a GalaxyCatalog from a fits...
         in_cat = fitsio.read(self.galaxyfile, ext=1, upper=True,
                              rows=np.arange(ind_range[0], ind_range[1]))
+        if self.config.dereddener is not None:
+            self.config.dereddener.deredden_array(in_cat)
         galaxies = GalaxyCatalog(in_cat)
         galaxies.add_zred_fields(self.config.zred_nsamp)
 
@@ -262,7 +264,8 @@ class ZredRunPixels(object):
         galaxies = GalaxyCatalog.from_galfile(self.config.galfile,
                                               nside=self.galtable.nside,
                                               hpix=[self.galtable.hpix[index]],
-                                              border=0.0)
+                                              border=0.0,
+                                              dereddener=self.config.dereddener)
         galaxies.add_zred_fields(self.config.zred_nsamp)
 
         if self.single_process:

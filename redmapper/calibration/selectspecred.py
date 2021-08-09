@@ -60,7 +60,8 @@ class SelectSpecRedGalaxies(object):
         gals = GalaxyCatalog.from_galfile(self.config.galfile,
                                           nside=self.config.d.nside,
                                           hpix=self.config.d.hpix,
-                                          border=self.config.border)
+                                          border=self.config.border,
+                                          dereddener=self.config.dereddener)
 
         # and we need the spectra
         spec = Catalog.from_fits_file(self.config.specfile_train)

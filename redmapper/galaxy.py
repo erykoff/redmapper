@@ -88,7 +88,8 @@ class GalaxyCatalog(Catalog):
 
     @classmethod
     def from_galfile(cls, filename, zredfile=None, nside=0, hpix=[], border=0.0, truth=False,
-                     use_tempfile=False, refmag_range=[-1000.0, 1000.0], chisq_max=1e100, zspec=False):
+                     use_tempfile=False, refmag_range=[-1000.0, 1000.0], chisq_max=1e100, zspec=False,
+                     dereddener=None):
         """
         Generate a GalaxyCatalog from a redmapper "galfile."
 
@@ -117,6 +118,8 @@ class GalaxyCatalog(Catalog):
             Maximum chisq to cut if reading zreds and if using tempfile.
         zspec : `bool`, optional
             Read in zspec information if available?  Default is False.
+        dereddener : `redmapper.Dereddener`, optional
+            Object to apply dereddening corrections.
         """
         if zredfile is not None:
             use_zred = True
@@ -157,6 +160,8 @@ class GalaxyCatalog(Catalog):
 
         if not pixelated:
             cat = fitsio.read(filename, ext=1, upper=True)
+            if dereddener is not None:
+                dereddener.deredden_array(cat)
             if use_zred:
                 zcat = fitsio.read(zredfile, ext=1, upper=True)
                 if zcat.size != cat.size:
@@ -354,8 +359,14 @@ class GalaxyCatalog(Catalog):
             # delete the tempfile
             os.remove(tempFile)
 
+            if dereddener is not None:
+                dereddener.deredden_array(cat)
+
             return(cls(cat))
         else:
+            if dereddener is not None:
+                dereddener.deredden_array(cat)
+
             if trim_border:
                 ipring = hpg.angle_to_pixel(nside_cutref, cat['ra'], cat['dec'], nest=False)
                 _, indices = esutil.numpy_util.match(inhpix, ipring)

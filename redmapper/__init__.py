@@ -42,3 +42,4 @@ from .volumelimit import VolumeLimitMask, VolumeLimitMaskFixed
 from .utilities import read_members
 from .randoms import GenerateRandoms, RandomCatalog, RandomCatalogMaker, RandomWeigher
 from .run_randoms_zmask import RunRandomsZmask
+from .dereddener import Dereddener

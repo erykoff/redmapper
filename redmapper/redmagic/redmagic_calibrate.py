@@ -357,7 +357,8 @@ class RedmagicCalibrator(object):
                                               hpix=self.config.d.hpix,
                                               border=self.config.border,
                                               zredfile=self.config.zredfile,
-                                              truth=self.config.redmagic_mock_truthspec)
+                                              truth=self.config.redmagic_mock_truthspec,
+                                              dereddener=self.config.dereddener)
 
         # Add redmagic fields
         gals.add_fields([('zuse', 'f4'),

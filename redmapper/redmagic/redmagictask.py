@@ -97,7 +97,8 @@ l           Output path.  Default is None, use same absolute
                                               nside=tab.nside,
                                               hpix=pix,
                                               border=0.0,
-                                              truth=self.config.has_truth)
+                                              truth=self.config.has_truth,
+                                              dereddener=self.config.dereddener)
 
             # Loop over all modes
             for j, mode in enumerate(modes):

@@ -332,7 +332,8 @@ class ColorBackgroundGenerator(object):
         gals = GalaxyCatalog.from_galfile(self.config.galfile,
                                           nside=self.config.d.nside,
                                           hpix=self.config.d.hpix,
-                                          border=self.config.border)
+                                          border=self.config.border,
+                                          dereddener=self.config.dereddener)
 
         # Generate ranges based on the data
         refmagbinsize = 0.05

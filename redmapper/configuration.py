@@ -12,6 +12,7 @@ import os
 import logging
 
 from .cluster import cluster_dtype_base, member_dtype_base
+from .dereddener import Dereddener
 from ._version import __version__
 
 class ConfigField(object):
@@ -231,6 +232,11 @@ class Configuration(object):
     has_truth = ConfigField(default=False)
     galfile_has_truth = ConfigField(default=False)
     galfile_has_zspec = ConfigField(default=False)
+
+    dereddening_mapfile = ConfigField(default='', required=False)
+    dereddening_norm = ConfigField(default=1.0, required=False)
+    dereddening_constants = ConfigField(isArray=True, default=[1.0], required=False)
+    dereddening_apply = ConfigField(default=False, required=False)
 
     area_finebin = ConfigField(default=0.001, required=True)
     area_coarsebin = ConfigField(default=0.005, required=True)
@@ -526,6 +532,12 @@ class Configuration(object):
 
         self._set_lengths(['redmagic_zrange'], 2)
 
+        # Dereddening checks
+        if self.dereddening_apply:
+            self._set_lengths(['dereddening_constants'], self.nmag)
+            if not os.path.isfile(self.dereddening_mapfile):
+                raise ValueError("Dereddening map '%s' is not found." % (self.dereddening_mapfile))
+
         # Finally, we can validate...
         self.validate()
 
@@ -542,6 +554,13 @@ class Configuration(object):
 
         # Now set the duplicatable config parameters...
         self.d = DuplicatableConfig(self)
+
+        # Set up the dereddener if desired.
+        if self.dereddening_apply:
+            self.dereddener = Dereddener(self.dereddening_mapfile, self.dereddening_norm,
+                                         self.dereddening_constants, self.nmag, self.ref_ind)
+        else:
+            self.dereddener = None
 
         # Finally, once everything is here, we can make paths
         if not os.path.exists(self.outpath):

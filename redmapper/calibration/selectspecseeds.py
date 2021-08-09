@@ -58,7 +58,8 @@ class SelectSpecSeeds(object):
                                           nside=self.config.d.nside,
                                           hpix=self.config.d.hpix,
                                           border=self.config.border,
-                                          zredfile=zredfile)
+                                          zredfile=zredfile,
+                                          dereddener=self.config.dereddener)
 
         # Read in the spectroscopic catalog (training or not)
         if usetrain:

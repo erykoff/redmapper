@@ -218,7 +218,8 @@ class ClusterRunner(object):
                                                        use_tempfile=True,
                                                        refmag_range=[refmag_low, refmag_high],
                                                        chisq_max=chisq_max,
-                                                       zspec=self.config.centering_use_zspec)
+                                                       zspec=self.config.centering_use_zspec,
+                                                       dereddener=self.config.dereddener)
 
                 if zredfile is not None:
                     self.did_read_zreds = True
@@ -228,7 +229,8 @@ class ClusterRunner(object):
                                                        hpix=self.config.d.hpix,
                                                        border=self.config.border,
                                                        zredfile=zredfile,
-                                                       zspec=self.config.centering_use_zspec)
+                                                       zspec=self.config.centering_use_zspec,
+                                                       dereddener=self.config.dereddener)
 
                 # If the zredfile is not None and we didn't raise an exception,
                 # then we successfully read in the zreds

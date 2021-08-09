@@ -500,6 +500,8 @@ class BackgroundGenerator(object):
                 hi = np.clip(ctr + self.natatime, None, ngal)
 
                 gals = GalaxyCatalog.from_fits_file(self.config.galfile, rows=np.arange(lo, hi))
+                if self.config.dereddener is not None:
+                    self.config.dereddener.deredden_catalog(gals)
                 ctr = hi + 1
             else:
                 if master.ngals[subreg_indices[p]] == 0:
@@ -507,7 +509,8 @@ class BackgroundGenerator(object):
                     continue
 
                 gals = GalaxyCatalog.from_galfile(self.config.galfile, nside=master.nside,
-                                                  hpix=master.hpix[subreg_indices[p]], border=0.0)
+                                                  hpix=master.hpix[subreg_indices[p]], border=0.0,
+                                                  dereddener=self.config.dereddener)
 
                 lo = ctr
                 hi = ctr + gals.size
@@ -673,7 +676,8 @@ class ZredBackgroundGenerator(object):
             gals = GalaxyCatalog.from_galfile(self.config.galfile, nside=master.nside,
                                               hpix=master.hpix[subreg_indices[p]],
                                               border=0.0,
-                                              zredfile=self.config.zredfile)
+                                              zredfile=self.config.zredfile,
+                                              dereddener=self.config.dereddener)
 
             use, = np.where(gals.chisq < maxchisq)
 
