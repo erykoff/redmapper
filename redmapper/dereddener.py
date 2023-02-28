@@ -1,7 +1,6 @@
 """Class for applying dereddening.
 """
 import healsparse
-import healpy as hp
 import numpy as np
 
 
