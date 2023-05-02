@@ -3,11 +3,12 @@
 <<comment
 Shell script for running redmapper using MPI+shifter at NERSC. 
 
-ALLOCATE 1 node (256 cores)
+ALLOCATE 1 node (256 available cores)
+salloc -N 1 -C cpu -A des -L cfs,SCRATCH -t 02:00:00 --qos interactive --image=ghcr.io/erykoff/redmapper:0.8.5.5
+comment
+
 salloc -N 1 -C cpu -A des -L cfs,SCRATCH -t 02:00:00 --qos interactive --image=ghcr.io/erykoff/redmapper:0.8.5.5
 
-comment
-# Load the redmapper container using shifter
 SHIFTER=docker:ghcr.io/erykoff/redmapper:0.8.5.5
 
 echo 'Updating and loading the shifter image '$SHIFTER
