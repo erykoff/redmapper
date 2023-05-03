@@ -278,7 +278,17 @@ with open(jobfile, 'w') as jf:
         jf.write(parsl_script)
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
-        raise NotImplementedError("Basic slurm submission not implemented yet.  Use parsl")
+        jf.write("#SBATCH --job-name=%s\n"      % (jobname))
+        jf.write("#SBATCH --nodes=%d\n"         % (args.nodes))
+        jf.write("#SBATCH --ntasks-per-node=1\n") # Redmapper doesnt support MPI
+        jf.write("#SBATCH --cpus-per-task=256\n")  # Perlmutter has 256 cores per node
+        jf.write("#SBATCH --time=00:%d:00\n"    % (int(walltime / 60)))
+        jf.write("#SBATCH --account=%s\n"       % (batchconfig[batchmode]['account']))
+        jf.write("#SBATCH --qos=%s\n"           % (batchconfig[batchmode]['qos']))
+        jf.write("#SBATCH --constraint=cpu\n")
+        jf.write("#SBATCH --licenses=%s\n"      % (batchconfig[batchmode]['licenses']))
+        jf.write("#SBATCH --output=%s\n")       % (os.path.join(jobpath, '%s.log' % (jobname)))
+        jf.write("#SBATCH --error=%s\n")        % (os.path.join(jobpath, '%s.err' % (jobname)))
     else:
         # Nothing else supported
         raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")
