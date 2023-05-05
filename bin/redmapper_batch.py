@@ -294,7 +294,7 @@ with open(jobfile, 'w') as jf:
         jf.write(f"#SBATCH --output=%s\n"          % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
         jf.write(f"#SBATCH --error=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
 
-        index_string = '${pixarr[$SLURM_ARRAY_TASK_ID]}'
+        index_string = '{}'
     else:
         # Nothing else supported
         raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")
@@ -306,6 +306,13 @@ with open(jobfile, 'w') as jf:
         jf.write(")\n\n")
 
         jf.write("%s\n\n" % (batchconfig[batchmode]['setup']))
-
+        
+        
         cmd = run_command % (index_string)
-        jf.write("%s\n" % (cmd))
+        if batchconfig[batchmode]['batch'] == 'slurm':
+            # hack for now, use gnu parallel.
+            jf.write('cmd="%s"\n' % (cmd))
+            # print the array as a means to pipe to parallel as an argument
+            jf.write('echo "${pixarr[@]}" | parallel -j 2 "$cmd"\n')
+        else:
+            jf.write("%s\n" % (cmd))
