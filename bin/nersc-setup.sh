@@ -6,6 +6,3 @@ shifterimg pull $SHIFTER
 
 shifter --module=mpich --image $SHIFTER /bin/bash
 
-# Source the redmapper conda environment
-source /opt/redmapper/startup.sh
-
