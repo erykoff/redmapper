@@ -219,6 +219,7 @@ else:
 
 with open(jobfile, 'w') as jf:
     write_jobarray = True
+    index_string = ''
     if (batchconfig[batchmode]['batch'] == 'lsf'):
         # LSF mode
         jf.write("#BSUB -R '%s'\n" % (batchconfig[batchmode]['requirements']))
@@ -278,6 +279,9 @@ with open(jobfile, 'w') as jf:
         jf.write(parsl_script)
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
+        log_file = os.path.join(jobpath, f'{jobname}.log')
+        err_file = os.path.join(jobpath, f'{jobname}.err')
+        print(log_file, err_file)
         jf.write("#SBATCH --job-name=%s\n"      % (jobname))
         jf.write("#SBATCH --nodes=%d\n"         % (args.nodes))
         jf.write("#SBATCH --ntasks-per-node=1\n") # Redmapper doesnt support MPI
@@ -287,8 +291,8 @@ with open(jobfile, 'w') as jf:
         jf.write("#SBATCH --qos=%s\n"           % (batchconfig[batchmode]['qos']))
         jf.write("#SBATCH --constraint=cpu\n")
         jf.write("#SBATCH --licenses=%s\n"      % (batchconfig[batchmode]['licenses']))
-        jf.write("#SBATCH --output=%s\n")       % (os.path.join(jobpath, '%s.log' % (jobname)))
-        jf.write("#SBATCH --error=%s\n")        % (os.path.join(jobpath, '%s.err' % (jobname)))
+        jf.write(f"#SBATCH --output={log_file}\n")
+        jf.write(f"#SBATCH --error={err_file}\n")
     else:
         # Nothing else supported
         raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")

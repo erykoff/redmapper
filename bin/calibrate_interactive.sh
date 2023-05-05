@@ -7,7 +7,7 @@ ALLOCATE 1 node (256 available cores)
 salloc -N 1 -C cpu -A des -L cfs,SCRATCH -t 02:00:00 --qos interactive --image=ghcr.io/erykoff/redmapper:0.8.5.5
 comment
 
-salloc -N 1 -C cpu -A des -L cfs,SCRATCH -t 02:00:00 --qos interactive --image=ghcr.io/erykoff/redmapper:0.8.5.5
+#salloc -N 1 -C cpu -A des -L cfs,SCRATCH -t 02:00:00 --qos interactive --image=ghcr.io/erykoff/redmapper:0.8.5.5
 
 SHIFTER=docker:ghcr.io/erykoff/redmapper:0.8.5.5
 
