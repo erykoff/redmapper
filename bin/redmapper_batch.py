@@ -281,7 +281,6 @@ with open(jobfile, 'w') as jf:
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
         log_file = os.path.join(jobpath, f'{jobname}.log')
         err_file = os.path.join(jobpath, f'{jobname}.err')
-        print(log_file, err_file)
         jf.write("#SBATCH --job-name=%s\n"      % (jobname))
         jf.write("#SBATCH --nodes=%d\n"         % (args.nodes))
         jf.write("#SBATCH --ntasks-per-node=1\n") # Redmapper doesnt support MPI
