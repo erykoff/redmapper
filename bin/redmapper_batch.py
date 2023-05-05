@@ -279,10 +279,9 @@ with open(jobfile, 'w') as jf:
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
         jf.write("#!/bin/sh\n")
-        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, hpix_run.size-1))
+        jf.write("#SBATCH --job-name=%s\n"    % (jobname))
         jf.write("#SBATCH --nodes=%d\n"             % (args.nodes))
         jf.write("#SBATCH --mem=%d\n"               % (memory))
-        jf.write("#SBATCH --array=0-%d\n"           % (hpix_run.size-1))
         jf.write("#SBATCH --ntasks-per-node=1\n")   # Redmapper doesnt support MPI
         jf.write("#SBATCH --cpus-per-task=256\n")   # Perlmutter has 256 cores per node
         jf.write("#SBATCH --time=%d:00:00\n"        % (int(walltime / 60)))
@@ -291,8 +290,8 @@ with open(jobfile, 'w') as jf:
         jf.write("#SBATCH --constraint=cpu\n")
         jf.write("#SBATCH --licenses=%s\n"          % (batchconfig[batchmode]['licenses']))
         jf.write("#SBATCH --image=%s\n"             % (batchconfig[batchmode]['image']))
-        jf.write(f"#SBATCH --output=%s\n"          % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
-        jf.write(f"#SBATCH --error=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
+        jf.write(f"#SBATCH --output=%s\n"          % (str(os.path.join(jobpath, '%s-%%j.log' % (jobname)))))
+        jf.write(f"#SBATCH --error=%s\n"           % (str(os.path.join(jobpath, '%s-%%j.err' % (jobname)))))
 
         index_string = '{}'
     else:
@@ -313,6 +312,6 @@ with open(jobfile, 'w') as jf:
             # hack for now, use gnu parallel.
             jf.write('cmd="%s"\n' % (cmd))
             # print the array as a means to pipe to parallel as an argument
-            jf.write('echo "${pixarr[@]}" | parallel -j 2 "$cmd"\n')
+            jf.write('echo "${pixarr[@]}" | parallel -j 32 "$cmd"\n')
         else:
             jf.write("%s\n" % (cmd))
