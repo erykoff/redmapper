@@ -295,6 +295,9 @@ with open(jobfile, 'w') as jf:
         jf.write(f"#SBATCH --output=%s\n"          % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
         jf.write(f"#SBATCH --error=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
 
+        run_command = "source /opt/redmapper/startup.sh && " + run_command
+        run_command = f'shifter --module=mpich --image docker:ghcr.io/erykoff/redmapper:0.8.5.5 /bin/bash -c "{run_command}"'
+
         index_string = '${pixarr[$SLURM_ARRAY_TASK_ID]}'
     else:
         # Nothing else supported
