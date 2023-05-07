@@ -280,10 +280,9 @@ with open(jobfile, 'w') as jf:
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
 
         jf.write("#!/bin/sh\n")
-        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, hpix_run.size-1))
+        jf.write("#SBATCH --job-name=%s\n"    % (jobname))
         jf.write("#SBATCH --nodes=%d\n"             % (args.nodes))
         jf.write("#SBATCH --mem=%d\n"               % (memory))
-        jf.write("#SBATCH --array=0-%d\n"           % (hpix_run.size-1))
         jf.write("#SBATCH --ntasks-per-node=1\n")   # Redmapper doesnt support MPI
         jf.write("#SBATCH --cpus-per-task=256\n")   # Perlmutter has 256 cores per node
         jf.write("#SBATCH --time=%d:00:00\n"        % (int(walltime / 60)))
@@ -309,4 +308,10 @@ with open(jobfile, 'w') as jf:
         jf.write("%s\n\n" % (batchconfig[batchmode]['setup']))
 
         cmd = run_command % (index_string)
-        jf.write("%s\n" % (cmd))
+        if batchconfig[batchmode]['batch'] == 'slurm':
+            # hack for now, use gnu parallel.
+            jf.write('cmd="%s"\n' % (cmd))
+            # print the array as a means to pipe to parallel as an argument
+            jf.write('echo "${pixarr[@]}" | parallel -j 2 "$cmd"\n')
+        else:
+            jf.write("%s\n" % (cmd))
