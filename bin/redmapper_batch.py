@@ -308,10 +308,4 @@ with open(jobfile, 'w') as jf:
         jf.write("%s\n\n" % (batchconfig[batchmode]['setup']))
 
         cmd = run_command % (index_string)
-        if batchconfig[batchmode]['batch'] == 'slurm':
-            # hack for now, use gnu parallel.
-            jf.write('cmd="%s"\n' % (cmd))
-            # print the array as a means to pipe to parallel as an argument
-            jf.write('echo "${pixarr[@]}" | parallel -j 2 "$cmd"\n')
-        else:
-            jf.write("%s\n" % (cmd))
+        jf.write("%s\n" % (cmd))
