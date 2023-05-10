@@ -294,7 +294,7 @@ with open(jobfile, 'w') as jf:
         # we can't allocate more threads to that process, so we only ever allocate 1 node.
         jf.write("#SBATCH --nodes=1\n")
         jf.write("#SBATCH --ntasks-per-node=1\n")   
-        jf.write("#SBATCH --cpus-per-task=256\n")   
+        jf.write("#SBATCH --cpus-per-task=%d\n"     % (int(batchconfig[batchmode]['ncpu'])))   
         jf.write("#SBATCH --time=%d:00:00\n"        % (int(walltime / 60)))
         jf.write("#SBATCH --account=%s\n"           % (batchconfig[batchmode]['account']))
         jf.write("#SBATCH --qos=%s\n"               % (batchconfig[batchmode]['qos']))
