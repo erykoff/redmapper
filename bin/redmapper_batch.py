@@ -279,26 +279,41 @@ with open(jobfile, 'w') as jf:
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
 
+        mem_per_node = batchconfig[batchmode]['mpn']
+        pixels_per_node = np.floor(mem_per_node / memory)
+        total_pixels = hpix_run.size - 1
+        total_nodes = np.floor(total_pixels / pixels_per_node)
+
         jf.write("#!/bin/sh\n")
-        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, hpix_run.size-1))
+        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_nodes))
         jf.write("#SBATCH --nodes=%d\n"             % (args.nodes))
-        jf.write("#SBATCH --mem=%d\n"               % (memory))
-        jf.write("#SBATCH --array=0-%d\n"           % (hpix_run.size-1))
-        jf.write("#SBATCH --ntasks-per-node=1\n")   # Redmapper doesnt support MPI
-        jf.write("#SBATCH --cpus-per-task=256\n")   # Perlmutter has 256 cores per node
+        jf.write("#SBATCH --mem=%d\n"               % (mem_per_node))
+        jf.write("#SBATCH --array=0-%d\n"           % (total_nodes))
+        jf.write("#SBATCH --ntasks-per-node=1\n")   
+        jf.write("#SBATCH --cpus-per-task=256\n")   
         jf.write("#SBATCH --time=%d:00:00\n"        % (int(walltime / 60)))
         jf.write("#SBATCH --account=%s\n"           % (batchconfig[batchmode]['account']))
         jf.write("#SBATCH --qos=%s\n"               % (batchconfig[batchmode]['qos']))
         jf.write("#SBATCH --constraint=cpu\n")
         jf.write("#SBATCH --licenses=%s\n"          % (batchconfig[batchmode]['licenses']))
         jf.write("#SBATCH --image=%s\n"             % (batchconfig[batchmode]['image']))
-        jf.write(f"#SBATCH --output=%s\n"          % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
-        jf.write(f"#SBATCH --error=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
+        jf.write(f"#SBATCH --output=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
+        jf.write(f"#SBATCH --error=%s\n"            % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
 
-        run_command = "source /opt/redmapper/startup.sh && " + run_command
-        run_command = f'shifter --module=mpich --image docker:ghcr.io/erykoff/redmapper:0.8.5.5 /bin/bash -c "{run_command}"'
+        jf.write("NUM_PIX_PER_NODE=%d\n"            % pixels_per_node)
+        jf.write("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))")
+        jf.write("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))")
+        jf.write('TASK_PIX=("${pixarr[@]:$TASK_START:$N}")')
 
-        index_string = '${pixarr[$SLURM_ARRAY_TASK_ID]}'
+        # Extra work needs to be done for slurm to run in the docker container and 
+        run_command = f"""
+            parallel -j {pixels_per_node}
+            # shifter --module=mpich --image {batchconfig[batchmode]['image']} /bin/bash -c 
+            'source /opt/redmapper/startup.sh && {run_command}'
+            ::: '${{TASK_PIX[@]}}'"'
+        """
+
+        index_string = '{}'
     else:
         # Nothing else supported
         raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")
