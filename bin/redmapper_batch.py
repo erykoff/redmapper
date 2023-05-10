@@ -318,7 +318,7 @@ with open(jobfile, 'w') as jf:
 
     else:
         # Nothing else supported
-        raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")
+        raise RuntimeError("Only LSF, PBS, SLURM, parsl/slurm, and parsl/local supported at this time.")
 
     if write_jobarray:
         jf.write("pixarr=(")
