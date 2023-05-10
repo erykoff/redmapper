@@ -24,8 +24,8 @@ Tests
 Once installed, it is important to run all the tests:
 
 ```
-cd redmapper/tests
-nosetests
+cd redmapper
+pytest -v tests/
 ```
 
 If you encounter any problems, please [file an
