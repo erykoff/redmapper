@@ -214,6 +214,8 @@ if need_maskgals:
 
 if batchconfig[batchmode]['batch'] == 'parsl':
     jobfile = os.path.join(jobpath, '%s_%d.py' % (jobname, index + 1))
+elif batchconfig[batchmode]['batch'] == 'slurm':
+    jobfile = os.path.join(jobpath, '%s_%d.slurm' % (jobname, index + 1))
 else:
     jobfile = os.path.join(jobpath, '%s_%d.job' % (jobname, index + 1))
 
@@ -280,9 +282,9 @@ with open(jobfile, 'w') as jf:
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
 
         mem_per_node = batchconfig[batchmode]['mpn']
-        pixels_per_node = np.floor(mem_per_node / memory)
+        pixels_per_node = int(np.floor(mem_per_node / memory))
         total_pixels = hpix_run.size - 1
-        total_nodes = np.floor(total_pixels / pixels_per_node)
+        total_nodes = int(np.floor(total_pixels / pixels_per_node))
 
         jf.write("#!/bin/sh\n")
         jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_nodes))
@@ -301,18 +303,12 @@ with open(jobfile, 'w') as jf:
         jf.write(f"#SBATCH --error=%s\n"            % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
 
         jf.write("NUM_PIX_PER_NODE=%d\n"            % pixels_per_node)
-        jf.write("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))")
-        jf.write("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))")
-        jf.write('TASK_PIX=("${pixarr[@]:$TASK_START:$N}")')
+        jf.write("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))\n")
+        jf.write("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))\n")
+        jf.write('TASK_PIX=("${pixarr[@]:$TASK_START:$NUM_PIX_PER_NODE}")\n')
 
         # Extra work needs to be done for slurm to run in the docker container and 
-        run_command = f"""
-            parallel -j {pixels_per_node}
-            # shifter --module=mpich --image {batchconfig[batchmode]['image']} /bin/bash -c 
-            'source /opt/redmapper/startup.sh && {run_command}'
-            ::: '${{TASK_PIX[@]}}'"'
-        """
-
+        run_command = f'parallel -j {pixels_per_node:d} shifter --image={batchconfig[batchmode]["image"]} "/bin/bash -c \'source /opt/redmapper/startup.sh && {run_command}\'" ::: "${{TASK_PIX[@]}}"'
         index_string = '{}'
     else:
         # Nothing else supported
