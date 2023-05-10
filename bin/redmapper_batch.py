@@ -281,16 +281,18 @@ with open(jobfile, 'w') as jf:
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
 
-        mem_per_node = batchconfig[batchmode]['mpn']
+        mem_per_node = int(batchconfig[batchmode]['mpn'])
         pixels_per_node = int(np.floor(mem_per_node / memory))
         total_pixels = hpix_run.size - 1
-        total_nodes = int(np.floor(total_pixels / pixels_per_node))
+        total_tasks = int(np.floor(total_pixels / pixels_per_node))
 
         jf.write("#!/bin/sh\n")
-        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_nodes))
-        jf.write("#SBATCH --nodes=%d\n"             % (args.nodes))
+        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_tasks))
         jf.write("#SBATCH --mem=%d\n"               % (mem_per_node))
-        jf.write("#SBATCH --array=0-%d\n"           % (total_nodes))
+        jf.write("#SBATCH --array=0-%d\n"           % (total_tasks))
+        # Since redmapper doesn't use MPI, we can only run 1 process per node, and even if we add more nodes
+        # we can't allocate more threads to that process, so we only ever allocate 1 node.
+        jf.write("#SBATCH --nodes=1\n")
         jf.write("#SBATCH --ntasks-per-node=1\n")   
         jf.write("#SBATCH --cpus-per-task=256\n")   
         jf.write("#SBATCH --time=%d:00:00\n"        % (int(walltime / 60)))
@@ -299,12 +301,14 @@ with open(jobfile, 'w') as jf:
         jf.write("#SBATCH --constraint=cpu\n")
         jf.write("#SBATCH --licenses=%s\n"          % (batchconfig[batchmode]['licenses']))
         jf.write("#SBATCH --image=%s\n"             % (batchconfig[batchmode]['image']))
-        jf.write(f"#SBATCH --output=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
+        jf.write(f"#SBATCH --output=%s\n\n"         % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
 
+        jf.write("module load parallel\n")
 
-        # Extra work needs to be done for slurm to run in the docker container and 
+        # In parallel on each node, spin up a docker container for each pixel and execute the requested redmapper script.
         run_command = f'parallel -j {pixels_per_node:d} shifter --image={batchconfig[batchmode]["image"]} "/bin/bash -c \'source /opt/redmapper/startup.sh && {run_command}\'" ::: "${{TASK_PIX[@]}}"'
-        # We need these commands to be run AFTER pixarr is added, so we add them to run_command isntead of jobfile
+
+        # We need these commands to be run AFTER pixarr is added, so we add them to run_command (in reverse!) instead of jobfile
         run_command=('TASK_PIX=("${pixarr[@]:$TASK_START:$NUM_PIX_PER_NODE}")\n')+run_command
         run_command=("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))\n")+run_command
         run_command=("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))\n")+run_command
