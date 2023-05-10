@@ -300,16 +300,18 @@ with open(jobfile, 'w') as jf:
         jf.write("#SBATCH --licenses=%s\n"          % (batchconfig[batchmode]['licenses']))
         jf.write("#SBATCH --image=%s\n"             % (batchconfig[batchmode]['image']))
         jf.write(f"#SBATCH --output=%s\n"           % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
-        jf.write(f"#SBATCH --error=%s\n"            % (str(os.path.join(jobpath, '%s-%%A-%%a.err' % (jobname)))))
 
-        jf.write("NUM_PIX_PER_NODE=%d\n"            % pixels_per_node)
-        jf.write("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))\n")
-        jf.write("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))\n")
-        jf.write('TASK_PIX=("${pixarr[@]:$TASK_START:$NUM_PIX_PER_NODE}")\n')
 
         # Extra work needs to be done for slurm to run in the docker container and 
         run_command = f'parallel -j {pixels_per_node:d} shifter --image={batchconfig[batchmode]["image"]} "/bin/bash -c \'source /opt/redmapper/startup.sh && {run_command}\'" ::: "${{TASK_PIX[@]}}"'
+        # We need these commands to be run AFTER pixarr is added, so we add them to run_command isntead of jobfile
+        run_command=('TASK_PIX=("${pixarr[@]:$TASK_START:$NUM_PIX_PER_NODE}")\n')+run_command
+        run_command=("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))\n")+run_command
+        run_command=("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))\n")+run_command
+        run_command=("NUM_PIX_PER_NODE=%d\n" % pixels_per_node)+run_command
+    
         index_string = '{}'
+
     else:
         # Nothing else supported
         raise RuntimeError("Only LSF, PBS, parsl/slurm, and parsl/local supported at this time.")
