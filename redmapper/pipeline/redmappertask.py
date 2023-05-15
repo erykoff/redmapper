@@ -10,6 +10,7 @@ from ..run_firstpass import RunFirstPass
 from ..run_likelihoods import RunLikelihoods
 from ..run_percolation import RunPercolation
 from ..run_randoms_zmask import RunRandomsZmask
+from ..runcat import RunCatalog
 from ..run_zscan import RunZScan
 
 from ..utilities import getMemoryString
