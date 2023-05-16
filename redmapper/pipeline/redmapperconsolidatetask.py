@@ -419,7 +419,7 @@ class RuncatConsolidateTask(object):
 
         if do_plots:
             cat = Catalog.from_fits_file(cat_fname)
-            self.config.d.outbase = cat_name
+            self.config.d.outbase = cat_fname
             specplot = SpecPlot(self.config)
 
             if self.config.has_truth:
