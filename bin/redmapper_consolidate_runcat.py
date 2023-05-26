@@ -17,8 +17,7 @@ if __name__ == '__main__':
                         help='File type used in runcat')
 
     args = parser.parse_args()
-    cattype = args.cattype
-    
+
     if args.randommode:
         do_plots = False
         match_spec = False
