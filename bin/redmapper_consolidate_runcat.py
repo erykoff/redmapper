@@ -23,14 +23,12 @@ if __name__ == '__main__':
         do_plots = False
         match_spec = False
         consolidate_members = False
-        if args.cattype == '':
-            cattype = 'randoms_zmask'
+        cattype = 'randoms_zmask' if args.cattype == '' else args.cattype
     else:
         do_plots = True
         match_spec = True
         consolidate_members = True
-        if args.cattype == '':
-            cattype = 'runcat'
+        cattype = 'runcat' if args.cattype == '' else args.cattype
 
     consolidate = redmapper.pipeline.RuncatConsolidateTask(args.configfile)
     consolidate.run(do_plots=do_plots, match_spec=match_spec, consolidate_members=consolidate_members, cattype=cattype)
