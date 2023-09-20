@@ -214,7 +214,7 @@ if need_maskgals:
 
 if batchconfig[batchmode]['batch'] == 'parsl':
     jobfile = os.path.join(jobpath, '%s_%d.py' % (jobname, index + 1))
-elif batchconfig[batchmode]['batch'] == 'slurm':
+elif batchconfig[batchmode]['batch'] == 'slurm-perlmutter':
     jobfile = os.path.join(jobpath, '%s_%d.slurm' % (jobname, index + 1))
 else:
     jobfile = os.path.join(jobpath, '%s_%d.job' % (jobname, index + 1))
@@ -318,7 +318,7 @@ with open(jobfile, 'w') as jf:
 
     else:
         # Nothing else supported
-        raise RuntimeError("Only LSF, PBS, SLURM, parsl/slurm, and parsl/local supported at this time.")
+        raise RuntimeError("Only LSF, PBS, slurm/perlmutter, parsl/slurm, and parsl/local supported at this time.")
 
     if write_jobarray:
         jf.write("pixarr=(")

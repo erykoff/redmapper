@@ -314,7 +314,7 @@ class RuncatConsolidateTask(object):
 
         self.config = Configuration(configfile, outpath=path)
 
-    def run(self, do_plots=True, match_spec=True, consolidate_members=True, cattype='runcat'):
+    def run(self, do_plots=True, match_spec=True, consolidate_members=True, withversion=True, cattype='runcat'):
         """
         Run the runcat consolidation task.
 
@@ -327,10 +327,19 @@ class RuncatConsolidateTask(object):
            Default is True.
         consolidate_members: `bool`, optional
            Consolidate members as well as catalog?
+        withversion: `bool`, optional
+           Do the filenames to consolidate contain the redmapper code version?  Default is True.
+        cattype: `str`, optional
+           Catalog type in filenames to consolidate.  Default is 'runcat'.
         """
+       
         # find the files
-        catfiles = sorted(glob.glob(os.path.join(self.config.outpath, '%s_*_?????_%s_catalog.fit' % (self.config.outbase, cattype))))
+        if withversion:
+            fname = '%s_*_?????_redmapper_v%s_%s_catalog.fit' % (self.config.outbase, self.config.version, cattype)
+        else:
+            fname = '%s_*_?????_%s_catalog.fit' % (self.config.outbase, cattype)
 
+        catfiles = sorted(glob.glob(os.path.join(self.config.outpath, fname)))
         self.config.logger.info("Found %d catalog files in %s" % (len(catfiles), self.config.outpath))
 
         # Extract the nside that was run

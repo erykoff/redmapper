@@ -176,7 +176,7 @@ class RuncatPixelTask(object):
         runcat = RunCatalog(self.config)
         if not os.path.isfile(runcat.filename):
             runcat.run(do_percolation_masking=self.config.runcat_percolation_masking)
-            runcat.output(savemembers=True, withversion=False)
+            runcat.output(savemembers=True, withversion=True)
 
         self.config.stop_file_logging()
 
