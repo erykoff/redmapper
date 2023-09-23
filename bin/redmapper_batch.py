@@ -280,18 +280,17 @@ with open(jobfile, 'w') as jf:
         jf.write(parsl_script)
 
     elif (batchconfig[batchmode]['batch'] == 'slurm'):
-
-        mem_per_node = int(batchconfig[batchmode]['mpn'])
-        pixels_per_node = int(np.floor(mem_per_node / memory))
-        total_pixels = hpix_run.size - 1
-        total_tasks = int(np.floor(total_pixels / pixels_per_node))
+        # Use slurm job arrays, where each job in the array uses 1 node.
+        mem_per_job = int(batchconfig[batchmode]['mpn'])
+        # Use floor to underestimate the number of pixels per job, so we don't exceed the memory limit.
+        pixels_per_job = int(np.floor(mem_per_job / memory))
+        # Use floor here because job arrays start at, and include 0.
+        total_jobs = int(np.floor(hpix_run.size / pixels_per_job))
 
         jf.write("#!/bin/sh\n")
-        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_tasks))
-        jf.write("#SBATCH --mem=%d\n"               % (mem_per_node))
-        jf.write("#SBATCH --array=0-%d\n"           % (total_tasks))
-        # Since redmapper doesn't use MPI, we can only run 1 process per node, and even if we add more nodes
-        # we can't allocate more threads to that process, so we only ever allocate 1 node.
+        jf.write("#SBATCH --job-name=%s[0-%d]\n"    % (jobname, total_jobs))
+        jf.write("#SBATCH --mem=%d\n"               % mem_per_job)
+        jf.write("#SBATCH --array=0-%d\n"           % total_jobs)
         jf.write("#SBATCH --nodes=1\n")
         jf.write("#SBATCH --ntasks-per-node=1\n")   
         jf.write("#SBATCH --cpus-per-task=%d\n"     % (int(batchconfig[batchmode]['ncpu'])))   
@@ -301,18 +300,19 @@ with open(jobfile, 'w') as jf:
         jf.write("#SBATCH --constraint=cpu\n")
         jf.write("#SBATCH --licenses=%s\n"          % (batchconfig[batchmode]['licenses']))
         jf.write("#SBATCH --image=%s\n"             % (batchconfig[batchmode]['image']))
-        jf.write(f"#SBATCH --output=%s\n\n"         % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
+        jf.write("#SBATCH --output=%s\n"            % (str(os.path.join(jobpath, '%s-%%A-%%a.log' % (jobname)))))
+        jf.write("#SBATCH --mail-user=%s\n"         % (batchconfig[batchmode]['email']))
+        jf.write("#SBATCH --mail-type=%s\n\n"       % (batchconfig[batchmode]['mail-type']))
 
         jf.write("module load parallel\n")
 
         # In parallel on each node, spin up a docker container for each pixel and execute the requested redmapper script.
-        run_command = f'parallel -j {pixels_per_node:d} shifter --image={batchconfig[batchmode]["image"]} "/bin/bash -c \'source /opt/redmapper/startup.sh && {run_command}\'" ::: "${{TASK_PIX[@]}}"'
+        run_command = f'parallel -j {pixels_per_job:d} shifter "/bin/bash -c \'source /opt/redmapper/startup.sh && {run_command}\'" ::: "${{JOB_PIXELS[@]}}"'
 
         # We need these commands to be run AFTER pixarr is added, so we add them to run_command (in reverse!) instead of jobfile
-        run_command=('TASK_PIX=("${pixarr[@]:$TASK_START:$NUM_PIX_PER_NODE}")\n')+run_command
-        run_command=("TASK_END=$(($TASK_START + $NUM_PIX_PER_NODE))\n")+run_command
-        run_command=("TASK_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_NODE))\n")+run_command
-        run_command=("NUM_PIX_PER_NODE=%d\n" % pixels_per_node)+run_command
+        run_command=('JOB_PIXELS=("${pixarr[@]:$PIXEL_START:$NUM_PIX_PER_JOB}")\n')+run_command
+        run_command=("PIXEL_START=$(($SLURM_ARRAY_TASK_ID * $NUM_PIX_PER_JOB))\n")+run_command
+        run_command=("NUM_PIX_PER_JOB=%d\n" % pixels_per_job)+run_command
     
         index_string = '{}'
 
