@@ -162,7 +162,7 @@ PyObject* ChisqDistObject_compute(const struct ChisqDistObject* self, PyObject *
 			  &do_chisq,
 			  &nophotoerr)) {
 	PyErr_SetString(PyExc_RuntimeError,"Failed to parse args");
-	return chisq_obj;
+	return PyArray_Return((PyArrayObject *) chisq_obj);
     }
 
     // and do the work.
@@ -172,7 +172,7 @@ PyObject* ChisqDistObject_compute(const struct ChisqDistObject* self, PyObject *
 	       self->chisq_dist->refmagerr, self->chisq_dist->magerr, self->chisq_dist->color,
 	       self->chisq_dist->lupcorr, chisq, self->chisq_dist->sigint);
 
-    return chisq_obj;
+    return PyArray_Return((PyArrayObject *) chisq_obj);
 }
 
 static PyMethodDef ChisqDistObject_methods[] = {

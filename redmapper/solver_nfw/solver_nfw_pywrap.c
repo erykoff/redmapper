@@ -126,11 +126,11 @@ PyObject* SolverObject_solver_nfw(const struct SolverObject* self, PyObject *arg
     // this needs to return the tuple.
 
     PyObject* retval = PyTuple_New(5);
-    PyTuple_SET_ITEM(retval, 0, lam_obj);
-    PyTuple_SET_ITEM(retval, 1, p_obj);
-    PyTuple_SET_ITEM(retval, 2, wt_obj);
-    PyTuple_SET_ITEM(retval, 3, rlam_obj);
-    PyTuple_SET_ITEM(retval, 4, thetar_obj);
+    PyTuple_SET_ITEM(retval, 0, PyArray_Return((PyArrayObject *)lam_obj));
+    PyTuple_SET_ITEM(retval, 1, PyArray_Return((PyArrayObject *)p_obj));
+    PyTuple_SET_ITEM(retval, 2, PyArray_Return((PyArrayObject *)wt_obj));
+    PyTuple_SET_ITEM(retval, 3, PyArray_Return((PyArrayObject *)rlam_obj));
+    PyTuple_SET_ITEM(retval, 4, PyArray_Return((PyArrayObject *)thetar_obj));
 
     return retval;
 }
