@@ -384,8 +384,8 @@ class CenteringRandom(Centering):
         ra_cen = self.cluster.ra + x / np.cos(np.radians(self.cluster.dec))
         dec_cen = self.cluster.dec + y
 
-        self.ra[0] = ra_cen
-        self.dec[0] = dec_cen
+        self.ra[0] = ra_cen[0]
+        self.dec[0] = dec_cen[0]
         self.ngood = 1
         self.index[0] = -1
         self.maxind = -1

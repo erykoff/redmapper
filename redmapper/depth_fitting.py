@@ -388,8 +388,8 @@ class DepthLim(object):
         else:
             maskgals.limmag[:] = limpars['LIMMAG']
             maskgals.exptime[:] = limpars['EXPTIME']
-            maskgals.zp[0] = limpars['ZP']
-            maskgals.nsig[0] = limpars['NSIG']
+            maskgals.zp[0] = limpars['ZP'][0]
+            maskgals.nsig[0] = limpars['NSIG'][0]
 
         return
 
