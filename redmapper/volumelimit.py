@@ -48,6 +48,11 @@ class VolumeLimitMask(object):
            Output filename with redmapper version string.
         """
         self.config = config
+
+        if hasattr(vlim_lstar, "__len__"):
+            if len(vlim_lstar) > 1:
+                raise ValueError("Can only use single value vlim_lstar.")
+            vlim_lstar = vlim_lstar[0]
         self.vlim_lstar = vlim_lstar
 
         if vlimfile is None:
@@ -100,6 +105,8 @@ class VolumeLimitMask(object):
         # Make some checks to make sure we can build a volume limit mask
         if self.config.depthfile is None or not os.path.isfile(self.config.depthfile):
             raise RuntimeError("Cannot create a volume limit mask without a depth file")
+        if self.config.maskfile is None or not os.path.isfile(self.config.maskfile):
+            raise RuntimeError("Cannot create a volume limit mask without a maskfile")
         for fname in self.config.vlim_depthfiles:
             if not os.path.isfile(fname):
                 raise RuntimeError("Could not find specified vlim_depthfile %s" % (fname))
@@ -120,20 +127,22 @@ class VolumeLimitMask(object):
         ref_ind = self.config.bands.index(self.config.refmag)
 
         # Read in the primary depth structure
+        sparse_mask = healsparse.HealSparseMap.read(self.config.maskfile)
         sparse_depthmap = healsparse.HealSparseMap.read(self.config.depthfile)
 
         dtype_vlimmap = [('fracgood', 'f4'),
                          ('zmax', 'f4')]
 
-        sparse_vlimmap = healsparse.HealSparseMap.make_empty(sparse_depthmap.nside_coverage,
-                                                             sparse_depthmap.nside_sparse,
+        # Create the vlim map here and fill it below.
+        sparse_vlimmap = healsparse.HealSparseMap.make_empty(sparse_mask.nside_coverage,
+                                                             sparse_mask.nside_sparse,
                                                              dtype=dtype_vlimmap,
                                                              primary='fracgood')
 
-        validPixels = sparse_depthmap.valid_pixels
-        depthValues = sparse_depthmap.get_values_pix(validPixels)
+        validPixels = sparse_mask.valid_pixels
+        depthValues = sparse_depthmap.get_values_pix(validPixels, nside=sparse_mask.nside_sparse)
         vlimmap = np.zeros(validPixels.size, dtype=dtype_vlimmap)
-        vlimmap['fracgood'] = depthValues['fracgood']
+        vlimmap['fracgood'] = sparse_mask[validPixels]
 
         lo, = np.where(depthValues['m50'] <= limmags.min())
         vlimmap['zmax'][lo] = zbins.min()
@@ -148,8 +157,7 @@ class VolumeLimitMask(object):
         for i, depthfile in enumerate(self.config.vlim_depthfiles):
             sparse_depthmap2, hdr2 = healsparse.HealSparseMap.read(depthfile, header=True)
 
-            validPixels2 = sparse_depthmap2.valid_pixels
-            depthValues2 = sparse_depthmap2.get_values_pix(validPixels2)
+            depthValues2 = sparse_depthmap2.get_values_pix(validPixels, nside=sparse_mask.nside_sparse)
 
             nsig = hdr2['NSIG']
             zp = hdr2['ZP']
@@ -158,15 +166,16 @@ class VolumeLimitMask(object):
             # Note this is validated in the config read
             map_ind = self.config.bands.index(self.config.vlim_bands[i])
 
-            # match pixels
-            a, b = esutil.numpy_util.match(validPixels, validPixels2)
+            # Only calculate with the values that are in the map.
+            use = (depthValues2["fracgood"] > 0.0)
 
             n2 = self.config.vlim_nsigs[i]**2.
-            flim_in = 10.**((depthValues2['limmag'][b] - zp) / (-2.5))
-            fn = np.clip((flim_in**2. * depthValues2['exptime'][b]) / (nsig**2.) - flim_in, 0.001, None)
-            flim_mask = (n2 + np.sqrt(n2**2. + 4.*depthValues2['exptime'][b] * n2 * fn)) / (2.*depthValues2['exptime'][b])
+            flim_in = 10.**((depthValues2['limmag'][use] - zp) / (-2.5))
+            fn = np.clip((flim_in**2. * depthValues2['exptime'][use]) / (nsig**2.) - flim_in, 0.001, None)
+            flim_mask = (n2 + np.sqrt(n2**2. + 4.*depthValues2['exptime'][use] * n2 * fn)) / (2.*depthValues2['exptime'][use])
+
             lim_mask = np.zeros(vlimmap.size)
-            lim_mask[a] = zp - 2.5*np.log10(flim_mask)
+            lim_mask[use] = zp - 2.5*np.log10(flim_mask)
 
             zinds = np.searchsorted(zredstr.z, zbins, side='right')
 
@@ -200,7 +209,7 @@ class VolumeLimitMask(object):
             limited, = np.where(zmax_temp < vlimmap['zmax'])
             vlimmap['zmax'][limited] = zmax_temp[limited]
 
-
+        # Here is where we fill the pixels in the volume limit map.
         gd, = np.where(vlimmap['zmax'] > zbins[0])
 
         sparse_vlimmap.update_values_pix(validPixels[gd], vlimmap[gd])
