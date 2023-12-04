@@ -32,7 +32,9 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip uninstall -y esutil
         pip install --no-cache esutil
-        pip install .[full]
+    - name: Install package
+      run: |
+        pip install .[full] --no-deps --no-build-isolation
     - name: Test with pytest
       run: |
         cd tests
