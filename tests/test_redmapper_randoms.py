@@ -12,7 +12,7 @@ import esutil
 
 from redmapper import Configuration, VolumeLimitMask, GenerateRandoms
 from redmapper import RandomCatalog, RunRandomsZmask, RandomWeigher
-from redmapper import Catalog
+from redmapper import Catalog, ClusterCatalog
 
 class RedmapperRandomsTestCase(unittest.TestCase):
     """
@@ -52,12 +52,25 @@ class RedmapperRandomsTestCase(unittest.TestCase):
         rands = RandomCatalog.from_randfile(config.randfile)
         self.assertEqual(rands.size, nrands)
 
-        # The distribution was confirmed on a bigger set; this just wants a quick
-        # check that the numbers match
-        testing.assert_array_almost_equal(rands.ra[: 3], [140.367948, 140.291156, 141.03190])
-        testing.assert_array_almost_equal(rands.dec[: 3], [66.272433, 66.013655, 66.121244])
-        testing.assert_array_almost_equal(rands.z[: 3], [0.090511, 0.296007, 0.365437])
-        testing.assert_array_almost_equal(rands.Lambda[: 3], [24.473192, 34.282143, 25.60206])
+        catalog = ClusterCatalog.from_catfile(config.catfile)
+
+        # Confirm that the randoms are in the footprint.
+        testing.assert_array_less(
+            0.0,
+            vlim.sparse_vlimmap["fracgood"].get_values_pos(rands.ra, rands.dec),
+        )
+        testing.assert_array_less(
+            rands.z,
+            vlim.sparse_vlimmap["zmax"].get_values_pos(rands.ra, rands.dec),
+        )
+        testing.assert_array_less(
+            np.min(catalog.Lambda) - 0.01,
+            rands.Lambda,
+        )
+        testing.assert_array_less(
+            rands.Lambda,
+            np.max(catalog.Lambda) + 0.01,
+        )
 
         # Run the random points through the zmask code
         rand_zmask = RunRandomsZmask(config)
