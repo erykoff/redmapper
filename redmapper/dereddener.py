@@ -32,7 +32,10 @@ class Dereddener(object):
             # Lazy-load the map only when needed.
             self._reddening_map = healsparse.HealSparseMap.read(self.mapfile)
 
-        vals = self._reddening_map.get_values_pos(galaxy_array['ra'], galaxy_array['dec'], lonlat=True)
+        if 'RA' in galaxy_array.dtype.names:
+            vals = self._reddening_map.get_values_pos(galaxy_array['RA'], galaxy_array['DEC'], lonlat=True)
+        else:
+            vals = self._reddening_map.get_values_pos(galaxy_array['ra'], galaxy_array['dec'], lonlat=True)
 
         bad = (vals < -100.0)
         if np.any(bad):
