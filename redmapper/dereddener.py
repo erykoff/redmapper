@@ -32,19 +32,30 @@ class Dereddener(object):
             # Lazy-load the map only when needed.
             self._reddening_map = healsparse.HealSparseMap.read(self.mapfile)
 
-        if 'RA' in galaxy_array.dtype.names:
-            vals = self._reddening_map.get_values_pos(galaxy_array['RA'], galaxy_array['DEC'], lonlat=True)
+        if 'ra' in galaxy_array.dtype.names:
+            lower = True
         else:
+            lower = False
+
+        if lower:
             vals = self._reddening_map.get_values_pos(galaxy_array['ra'], galaxy_array['dec'], lonlat=True)
+        else:
+            vals = self._reddening_map.get_values_pos(galaxy_array['RA'], galaxy_array['DEC'], lonlat=True)
 
         bad = (vals < -100.0)
         if np.any(bad):
             vals[bad] = np.median(vals[~bad])
 
-        galaxy_array['refmag'] -= self.norm*self.constants[self.ref_ind]*vals
+        if lower:
+            galaxy_array['refmag'] -= self.norm*self.constants[self.ref_ind]*vals
+        else:
+            galaxy_array['REFMAG'] -= self.norm*self.constants[self.ref_ind]*vals
 
         for i in range(self.nmag):
-            galaxy_array['mag'][:, i] -= self.norm*self.constants[i]*vals
+            if lower:
+                galaxy_array['mag'][:, i] -= self.norm*self.constants[i]*vals
+            else:
+                galaxy_array['MAG'][:, i] -= self.norm*self.constants[i]*vals
 
     def deredden_catalog(self, galaxies):
         """Deredden a galaxy catalog in-place.
