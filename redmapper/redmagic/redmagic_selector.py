@@ -33,7 +33,7 @@ class RedmagicSelector(object):
             Random number generator.
         """
 
-        if not isinstance(conf, Configuration):
+        if isinstance(conf, str):
             self.config = Configuration(conf)
         else:
             self.config = conf
