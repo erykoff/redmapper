@@ -204,6 +204,8 @@ class RedmagicCalTestCase(unittest.TestCase):
         self.test_dir = None
 
     def tearDown(self):
+        if "TXPIPE_NO_DELETE" in os.environ:
+            return
         if self.test_dir is not None:
             if os.path.exists(self.test_dir):
                 shutil.rmtree(self.test_dir, True)
